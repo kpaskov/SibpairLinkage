@@ -74,64 +74,63 @@ X2[0, :] = 1
 
 print('ready')
 
-for phen_index in range(40):
-	print('SCQ', phen_index)
-	sample_to_affected = dict()
-	with open('../PhasingFamilies/phenotypes/spark_v5/spark_v5-scq-prep.csv', 'r') as f:
-		reader = csv.reader(f)
-		for pieces in reader:
-			phen = pieces[13+phen_index]
-			if phen=='1.0' or phen=='0.0':
-				sample_to_affected[pieces[2]] = '1' if phen =='1.0' else '0'
+print('SCQ', phen_index)
+sample_to_affected = dict()
+with open('../PhasingFamilies/phenotypes/spark_v5/spark_v5-scq-prep.csv', 'r') as f:
+	reader = csv.reader(f)
+	for pieces in reader:
+		phen = pieces[13+phen_index]
+		if phen=='1.0' or phen=='0.0':
+			sample_to_affected[pieces[2]] = '1' if phen =='1.0' else '0'
 
 
-	aut_aut_na_response = [0]*2 + [2]*6 + [0] + [2]*9 + [0]*22
+aut_aut_na_response = [0]*2 + [2]*6 + [0] + [2]*9 + [0]*22
 
-	num_affected = np.array([-1 if (x['sibling1'] not in sample_to_affected or x['sibling2'] not in sample_to_affected) else int(sample_to_affected[x['sibling1']])+int(sample_to_affected[x['sibling2']]) for x in sibpairs])
-	#num_affected = np.array([-1 if (x.family + '.p1' not in sample_to_affected or x.family + '.s1' not in sample_to_affected) else int(sample_to_affected[x.family + '.p1'])+int(sample_to_affected[x.family + '.s1']) for x in sibpairs])
-	print(Counter(num_affected))
-	na = aut_aut_na_response[phen_index]
-	print(na, np.sum(num_affected==na), end=' ')
+num_affected = np.array([-1 if (x['sibling1'] not in sample_to_affected or x['sibling2'] not in sample_to_affected) else int(sample_to_affected[x['sibling1']])+int(sample_to_affected[x['sibling2']]) for x in sibpairs])
+#num_affected = np.array([-1 if (x.family + '.p1' not in sample_to_affected or x.family + '.s1' not in sample_to_affected) else int(sample_to_affected[x.family + '.p1'])+int(sample_to_affected[x.family + '.s1']) for x in sibpairs])
+print(Counter(num_affected))
+na = aut_aut_na_response[phen_index]
+print(na, np.sum(num_affected==na), end=' ')
 
 
-	is_match_reduced, reduced_inverse = np.unique(np.vstack((is_mat_match[num_affected==na, :],
-	                                                                 is_pat_match[num_affected==na, :])), axis=1, return_inverse=True)
-	print(is_mat_match.shape[1], is_match_reduced.shape)
+is_match_reduced, reduced_inverse = np.unique(np.vstack((is_mat_match[num_affected==na, :],
+                                                                 is_pat_match[num_affected==na, :])), axis=1, return_inverse=True)
+print(is_mat_match.shape[1], is_match_reduced.shape)
 
+			
+num_intervals = is_match_reduced.shape[1]
+
+all_pvalues_reduced = np.zeros((num_intervals, ))
+
+# trial, interval, mat/pat
+rand_pvalue = np.hstack((X1[:, num_affected==na], X2[:, num_affected==na])).dot(is_match_reduced)
+
+# -------------------- implementing Westfall-Young max T stepdown procedure
+
+# indices are sorted along interval axis from interval with most IBD sharing
+# to least IBD sharing
+
+orig_indices = np.flip(np.argsort(rand_pvalue[0, :]), axis=0)
+
+max_t_k = np.zeros((num_trials+1, num_intervals+1))
+max_t_k[:, -1] = np.min(rand_pvalue, axis=1)
+for i, j in list(reversed(list(enumerate(orig_indices)))):
+	max_t_k[:, i] = np.maximum(max_t_k[:, i+1], rand_pvalue[:, j])
+max_t_k = max_t_k[:, :-1]
 				
-	num_intervals = is_match_reduced.shape[1]
+assert np.all(max_t_k[0, :] == rand_pvalue[0, orig_indices])
 
-	all_pvalues_reduced = np.zeros((num_intervals, ))
+# calculate pi(j)
+pvalues = np.sum(max_t_k[1:, :] >= np.tile(max_t_k[0, :], (num_trials, 1)), axis=0)/num_trials
+pvalues = np.array([np.max(pvalues[:(i+1)]) for i in np.arange(num_intervals)])
+all_pvalues_reduced[orig_indices] = pvalues
 
-	# trial, interval, mat/pat
-	rand_pvalue = np.hstack((X1[:, num_affected==na], X2[:, num_affected==na])).dot(is_match_reduced)
+all_pvalues = all_pvalues_reduced[reduced_inverse]
+print(all_pvalues.shape)
 
-	# -------------------- implementing Westfall-Young max T stepdown procedure
+print(np.min(all_pvalues))
 
-	# indices are sorted along interval axis from interval with most IBD sharing
-	# to least IBD sharing
-
-	orig_indices = np.flip(np.argsort(rand_pvalue[0, :]), axis=0)
-
-	max_t_k = np.zeros((num_trials+1, num_intervals+1))
-	max_t_k[:, -1] = np.min(rand_pvalue, axis=1)
-	for i, j in list(reversed(list(enumerate(orig_indices)))):
-		max_t_k[:, i] = np.maximum(max_t_k[:, i+1], rand_pvalue[:, j])
-	max_t_k = max_t_k[:, :-1]
-					
-	assert np.all(max_t_k[0, :] == rand_pvalue[0, orig_indices])
-
-	# calculate pi(j)
-	pvalues = np.sum(max_t_k[1:, :] >= np.tile(max_t_k[0, :], (num_trials, 1)), axis=0)/num_trials
-	pvalues = np.array([np.max(pvalues[:(i+1)]) for i in np.arange(num_intervals)])
-	all_pvalues_reduced[orig_indices] = pvalues
-
-	all_pvalues = all_pvalues_reduced[reduced_inverse]
-	print(all_pvalues.shape)
-
-	print(np.min(all_pvalues))
-
-	np.save('permutation_tests/scq%d.%s.npy' % (phen_index+1, output_file), all_pvalues)
+np.save('permutation_tests/scq%d.%s.npy' % (phen_index+1, output_file), all_pvalues)
 
 
 
