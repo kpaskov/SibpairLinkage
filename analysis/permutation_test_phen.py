@@ -111,7 +111,7 @@ for phen_index in range(40):
 	# indices are sorted along interval axis from interval with most IBD sharing
 	# to least IBD sharing
 
-	orig_indices = np.flip(np.argsort(rand_pvalue[0, :]))
+	orig_indices = np.flip(np.argsort(rand_pvalue[0, :]), axis=0)
 
 	max_t_k = np.zeros((num_trials+1, num_intervals+1))
 	max_t_k[:, -1] = np.min(rand_pvalue, axis=1)
