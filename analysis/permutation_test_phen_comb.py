@@ -79,7 +79,7 @@ print('ready')
 
 aut_response = ['0.0']*2 + ['1.0']*6 + ['0.0'] + ['1.0']*9 + ['0.0']*22
 
-for phen_index2 in range(40):
+for phen_index2 in range(phen_index+1, 40):
 	print('SCQ', phen_index, phen_index2)
 	phen_indices = [phen_index, phen_index2]
 
