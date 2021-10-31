@@ -14,7 +14,7 @@ import sys
 dataset = 'spark'
 num_trials = 1000
 interval_chrom, interval_start_pos, interval_end_pos = None, None, None
-phen_index = sys.argv[1]
+phen_index = int(sys.argv[1])
 
 output_file = dataset
 if interval_chrom is not None:
