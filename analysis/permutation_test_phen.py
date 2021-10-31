@@ -16,6 +16,12 @@ num_trials = 1000
 interval_chrom, interval_start_pos, interval_end_pos = None, None, None
 phen_index = sys.argv[1]
 
+output_file = dataset
+if interval_chrom is not None:
+	output_file+= '.chr%s' % interval_chrom
+if interval_start_pos is not None or interval_end_pos is not None:
+	output_file += '.%d-%d' % (interval_start_pos, interval_end_pos)
+
 #phase_dirs = ['../PhasingFamilies/phased_spark_wes1_array_quads_del',
 #              '../PhasingFamilies/phased_spark_wes2_array_quads_del',
 #              '../PhasingFamilies/phased_spark_wes3_array_quads_del',
