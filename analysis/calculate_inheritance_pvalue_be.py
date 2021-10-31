@@ -14,6 +14,7 @@ parser.add_argument('ped_file', type=str, help='Ped file for data.')
 parser.add_argument('identicals_file', type=str, help='File containing identical twins.')
 parser.add_argument('chrom', type=str, help='Chromosome.')
 
+
 args = parser.parse_args()
 
 with open('%s/info.json' % args.phase_dir, 'r') as f:
@@ -78,7 +79,7 @@ def pull_sibpairs(phase_dir, sample_to_affected, sample_to_sex, parents_to_child
 	for (family, mom, dad), children in parents_to_children.items():
 		for sibling1, sibling2 in combinations([x for x in children if x in sample_to_affected], 2):
 			if (sibling1, sibling2) in sibpair_has_phase_data:
-				sibpairs.append(form_sibpair(family, sibling1, sibling2, mom, dad))
+				sibpairs.append(form_sibpair(family, min(sibling1, sibling2), max(sibling1, sibling2), mom, dad))
 
 		#aff_children = [x for x in children if x in sample_to_affected and sample_to_affected[x]=='2' and x in child_has_phase_data]
 		#typ_children = [x for x in children if x in sample_to_affected and sample_to_affected[x]=='1' and x in child_has_phase_data]

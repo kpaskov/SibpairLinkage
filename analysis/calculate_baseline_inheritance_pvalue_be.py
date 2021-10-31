@@ -37,9 +37,9 @@ def pull_sibpairs(phase_dir, sample_to_affected, sample_to_sex, parents_to_child
 	with open(identicals_file, 'r') as f:
 		for line in f:
 			pieces = line.strip().split('\t')
-			for sibling1, sibling2 in combinations(pieces, 2):
-				leave_out.add((sibling1, sibling2))
-				leave_out.add((sibling2, sibling1))
+			sibling1, sibling2 = pieces[:2]
+			leave_out.add((sibling1, sibling2))
+			leave_out.add((sibling2, sibling1))
 
 
 	# pull sibpairs with phase data
