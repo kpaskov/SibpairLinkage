@@ -88,7 +88,7 @@ for phen_index2 in range(40):
 		reader = csv.reader(f)
 		for pieces in reader:
 			phens = [pieces[13+i] for i in phen_indices]
-			sample_to_affected[pieces2] = np.all([x==y for x, y in zip(phens, aut_response[phen_indices])])
+			sample_to_affected[pieces2] = np.all([x==y for x, y in zip(phens, [aut_response[i] for i in phen_indices])])
 
 
 	num_affected = np.array([-1 if (x['sibling1'] not in sample_to_affected or x['sibling2'] not in sample_to_affected) else int(sample_to_affected[x['sibling1']])+int(sample_to_affected[x['sibling2']]) for x in sibpairs])
