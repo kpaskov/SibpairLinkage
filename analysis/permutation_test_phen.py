@@ -22,6 +22,9 @@ if interval_chrom is not None:
 if interval_start_pos is not None or interval_end_pos is not None:
 	output_file += '.%d-%d' % (interval_start_pos, interval_end_pos)
 
+# test aut-aut behavioral sibpairs
+na = 2
+
 #phase_dirs = ['../PhasingFamilies/phased_spark_wes1_array_quads_del',
 #              '../PhasingFamilies/phased_spark_wes2_array_quads_del',
 #              '../PhasingFamilies/phased_spark_wes3_array_quads_del',
@@ -74,23 +77,25 @@ X2[0, :] = 1
 
 print('ready')
 
+if phen_index < 40:
+	phen_indices = [phen_index]
+else:
+	phen_indices = list(list(combinations(range(40), 2))[phen_index-40])
+
 print('SCQ', phen_index)
+
+aut_response = ['0.0']*2 + ['1.0']*6 + ['0.0'] + ['1.0']*9 + ['0.0']*22
+
 sample_to_affected = dict()
 with open('../PhasingFamilies/phenotypes/spark_v5/spark_v5-scq-prep.csv', 'r') as f:
 	reader = csv.reader(f)
 	for pieces in reader:
-		phen = pieces[13+phen_index]
-		if phen=='1.0' or phen=='0.0':
-			sample_to_affected[pieces[2]] = '1' if phen =='1.0' else '0'
+		phens = [pieces[13+i] for i in phen_indices]
+		sample_to_affected[pieces2] = np.all([x==y for x, y in zip(phens, aut_response[phen_indices])])
 
-
-aut_aut_na_response = [0]*2 + [2]*6 + [0] + [2]*9 + [0]*22
 
 num_affected = np.array([-1 if (x['sibling1'] not in sample_to_affected or x['sibling2'] not in sample_to_affected) else int(sample_to_affected[x['sibling1']])+int(sample_to_affected[x['sibling2']]) for x in sibpairs])
-#num_affected = np.array([-1 if (x.family + '.p1' not in sample_to_affected or x.family + '.s1' not in sample_to_affected) else int(sample_to_affected[x.family + '.p1'])+int(sample_to_affected[x.family + '.s1']) for x in sibpairs])
 print(Counter(num_affected))
-na = aut_aut_na_response[phen_index]
-print(na, np.sum(num_affected==na), end=' ')
 
 
 is_match_reduced, reduced_inverse = np.unique(np.vstack((is_mat_match[num_affected==na, :],
