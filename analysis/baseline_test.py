@@ -36,8 +36,6 @@ ibd[1, :] = np.sum(is_mat_match==-1, axis=0) + np.sum(is_pat_match==-1, axis=0)
 ibd_reduced, ibd_inverse = np.unique(ibd, axis=1, return_inverse=True)
 print(ibd.shape[1], ibd_reduced.shape)
 
-			
-num_intervals = is_match_reduced.shape[1]
 
 pvalues = np.ones((ibd_reduced.shape[1],))
 for i in range(ibd_reduced.shape[1]):
