@@ -40,7 +40,7 @@ print(ibd.shape[1], ibd_reduced.shape)
 num_intervals = is_match_reduced.shape[1]
 
 pvalues = np.ones((ibd_reduced.shape[1],))
-for i in range(ibd_reduced.shape[1])
+for i in range(ibd_reduced.shape[1]):
 	pvalues[i] = stats.binom_test(ibd_reduced[:, i])
 
 
