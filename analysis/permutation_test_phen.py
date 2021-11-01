@@ -98,14 +98,14 @@ if dataset == 'ssc.hg38':
 	with open('../PhasingFamilies/phenotypes/ssc/proband.data/scq_%s_raw.csv' % subtype, 'r') as f:
 		reader = csv.reader(f)
 		for pieces in reader:
-			phen = pieces[13+phen_index]
+			phen = pieces[2+phen_index]
 			if (pieces[0] in old_id_to_new_id) and (phen=='yes' or phen=='no'):
 				sample_to_affected[old_id_to_new_id[pieces[0]]] = 1 if phen =='yes' else 0
 
 	with open('../PhasingFamilies/phenotypes/ssc/designated.unaffected.sibling.data/scq_%s_raw.csv' % subtype, 'r') as f:
 		reader = csv.reader(f)
 		for pieces in reader:
-			phen = pieces[13+phen_index]
+			phen = pieces[2+phen_index]
 			if (pieces[0] in old_id_to_new_id) and (phen=='yes' or phen=='no'):
 				sample_to_affected[old_id_to_new_id[pieces[0]]] = 1 if phen =='yes' else 0
 
