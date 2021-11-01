@@ -42,7 +42,7 @@ for i in range(ibd_reduced.shape[1]):
 	pvalues[i] = stats.binom_test(ibd_reduced[:, i])
 
 
-np.save('permutation_tests/binombaseline.%s.npy' % output_file, pvalues[reduced_inverse])
+np.save('permutation_tests/binombaseline.%s.npy' % output_file, pvalues[ibd_inverse])
 
 
 
