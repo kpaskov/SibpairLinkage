@@ -9,8 +9,9 @@ from os import listdir
 import json
 import random
 import csv
+import sys
 
-dataset = 'spark'
+dataset = sys.argv[1]
 interval_chrom, interval_start_pos, interval_end_pos = None, None, None
 
 output_file = dataset
