@@ -122,7 +122,7 @@ na = aut_aut_na_response[phen_index]
 print(na, np.sum(num_affected==na), end=' ')
 
 is_mat_match = is_mat_match[:, ~is_outlier]
-is_pat_match = is_mat_match[:, ~is_outlier]
+is_pat_match = is_pat_match[:, ~is_outlier]
 
 
 is_match_reduced, reduced_inverse = np.unique(np.vstack((is_mat_match[num_affected==na, :],
