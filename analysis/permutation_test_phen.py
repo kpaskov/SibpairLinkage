@@ -12,6 +12,7 @@ import csv
 import sys
 
 dataset = 'spark'
+subtype = 'current' #current/life
 num_trials = 1000
 interval_chrom, interval_start_pos, interval_end_pos = None, None, None
 phen_index = int(sys.argv[1])
@@ -76,17 +77,35 @@ print('ready')
 
 print('SCQ', phen_index)
 sample_to_affected = dict()
-with open('../PhasingFamilies/phenotypes/spark_v5/spark_v5-scq-prep.csv', 'r') as f:
-	reader = csv.reader(f)
-	for pieces in reader:
-		phen = pieces[13+phen_index]
-		if phen=='1.0' or phen=='0.0':
-			sample_to_affected[pieces[2]] = '1' if phen =='1.0' else '0'
+
+if dataset == 'spark':
+	with open('../PhasingFamilies/phenotypes/spark_v5/spark_v5-scq-prep.csv', 'r') as f:
+		reader = csv.reader(f)
+		for pieces in reader:
+			phen = pieces[13+phen_index]
+			if phen=='1.0' or phen=='0.0':
+				sample_to_affected[pieces[2]] = 1 if phen =='1.0' else 0
+
+if dataset == 'ssc.hg38':
+	output_file = output_file + '.' + subtype
+	with open('../PhasingFamilies/phenotypes/ssc/proband.data/scq_%s_raw.csv' % subtype, 'r') as f:
+		reader = csv.reader(f)
+		for pieces in reader:
+			phen = pieces[13+phen_index]
+			if phen=='yes' or phen=='no':
+				sample_to_affected[pieces[2]] = 1 if phen =='yes' else 0
+
+	with open('../PhasingFamilies/phenotypes/ssc/designated.unaffected.sibling.data/scq_%s_raw.csv' % subtype, 'r') as f:
+		reader = csv.reader(f)
+		for pieces in reader:
+			phen = pieces[13+phen_index]
+			if phen=='yes' or phen=='no':
+				sample_to_affected[pieces[2]] = 1 if phen =='yes' else 0
 
 
 aut_aut_na_response = [0]*2 + [2]*6 + [0] + [2]*9 + [0]*22
 
-num_affected = np.array([-1 if (x['sibling1'] not in sample_to_affected or x['sibling2'] not in sample_to_affected) else int(sample_to_affected[x['sibling1']])+int(sample_to_affected[x['sibling2']]) for x in sibpairs])
+num_affected = np.array([-1 if (x['sibling1'] not in sample_to_affected or x['sibling2'] not in sample_to_affected) else sample_to_affected[x['sibling1']] + sample_to_affected[x['sibling2']] for x in sibpairs])
 #num_affected = np.array([-1 if (x.family + '.p1' not in sample_to_affected or x.family + '.s1' not in sample_to_affected) else int(sample_to_affected[x.family + '.p1'])+int(sample_to_affected[x.family + '.s1']) for x in sibpairs])
 print(Counter(num_affected))
 na = aut_aut_na_response[phen_index]
