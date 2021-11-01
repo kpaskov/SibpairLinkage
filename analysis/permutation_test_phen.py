@@ -11,7 +11,7 @@ import random
 import csv
 import sys
 
-dataset = 'spark'
+dataset = 'ssc.hg38'
 subtype = 'current' #current/life
 num_trials = 1000
 interval_chrom, interval_start_pos, interval_end_pos = None, None, None
@@ -88,19 +88,26 @@ if dataset == 'spark':
 
 if dataset == 'ssc.hg38':
 	output_file = output_file + '.' + subtype
+
+	with open('../PhasingFamilies/phenotypes/ssc/ssc.id_map.from.repository', 'r') as f:
+		old_id_to_new_id = dict()
+		for line in f:
+			pieces = line.strip().split('\t')
+			old_id_to_new_id[pieces[1]] = pieces[0]
+
 	with open('../PhasingFamilies/phenotypes/ssc/proband.data/scq_%s_raw.csv' % subtype, 'r') as f:
 		reader = csv.reader(f)
 		for pieces in reader:
 			phen = pieces[13+phen_index]
 			if phen=='yes' or phen=='no':
-				sample_to_affected[pieces[2]] = 1 if phen =='yes' else 0
+				sample_to_affected[old_id_to_new_id[pieces[0]]] = 1 if phen =='yes' else 0
 
 	with open('../PhasingFamilies/phenotypes/ssc/designated.unaffected.sibling.data/scq_%s_raw.csv' % subtype, 'r') as f:
 		reader = csv.reader(f)
 		for pieces in reader:
 			phen = pieces[13+phen_index]
 			if phen=='yes' or phen=='no':
-				sample_to_affected[pieces[2]] = 1 if phen =='yes' else 0
+				sample_to_affected[old_id_to_new_id[pieces[0]]] = 1 if phen =='yes' else 0
 
 
 aut_aut_na_response = [0]*2 + [2]*6 + [0] + [2]*9 + [0]*22
