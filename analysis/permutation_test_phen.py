@@ -52,6 +52,9 @@ with open('../PhasingFamilies/recomb_%s/sibpairs.json' % dataset, 'r') as f:
 is_mat_match = np.load('permutation_tests/phen.%s.mat_ibd.npy' % output_file)
 is_pat_match = np.load('permutation_tests/phen.%s.pat_ibd.npy' % output_file)
 
+baseline = np.load('permutation_tests/binombaseline.%s.npy' % dataset)
+is_outlier = baseline < 0.001
+
 # take into account sibling structure across quads
 individuals = sorted(set([x['sibling1'] for x in sibpairs] + [x['sibling2'] for x in sibpairs]))
 ind_to_index = dict([(x, i) for i, x in enumerate(individuals)])
@@ -118,6 +121,9 @@ print(Counter(num_affected))
 na = aut_aut_na_response[phen_index]
 print(na, np.sum(num_affected==na), end=' ')
 
+is_mat_match = is_mat_match[:, ~is_outlier]
+is_pat_match = is_mat_match[:, ~is_outlier]
+
 
 is_match_reduced, reduced_inverse = np.unique(np.vstack((is_mat_match[num_affected==na, :],
                                                                  is_pat_match[num_affected==na, :])), axis=1, return_inverse=True)
@@ -151,7 +157,8 @@ pvalues = np.sum(max_t_k[1:, :] >= np.tile(max_t_k[0, :], (num_trials, 1)), axis
 pvalues = np.array([np.max(pvalues[:(i+1)]) for i in np.arange(num_intervals)])
 all_pvalues_reduced[orig_indices] = pvalues
 
-all_pvalues = all_pvalues_reduced[reduced_inverse]
+all_pvalues = np.ones((len(baseline),))
+all_pvalues[~is_outlier] = all_pvalues_reduced[reduced_inverse]
 print(all_pvalues.shape)
 
 print(np.min(all_pvalues))
