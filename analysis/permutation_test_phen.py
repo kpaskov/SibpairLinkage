@@ -89,17 +89,17 @@ if dataset == 'spark':
 if dataset == 'ssc.hg38':
 	output_file = output_file + '.' + subtype
 
-	with open('../PhasingFamilies/phenotypes/ssc/ssc.id_map.from.repository', 'r') as f:
-		old_id_to_new_id = dict()
-		for line in f:
-			pieces = line.strip().split('\t')
-			old_id_to_new_id[pieces[1]] = pieces[0]
+	old_id_to_new_id = dict()
+	# p1 vs s1 are random, but it's ok since we know they're all quads
+	for sibpair in sibpairs:
+		old_id_to_new_id['%s.p1' % sibpair['family']] = sibpair['sibling1']
+		old_id_to_new_id['%s.s1' % sibpair['family']] = sibpair['sibling2']
 
 	with open('../PhasingFamilies/phenotypes/ssc/proband.data/scq_%s_raw.csv' % subtype, 'r') as f:
 		reader = csv.reader(f)
 		for pieces in reader:
 			phen = pieces[13+phen_index]
-			if phen=='yes' or phen=='no':
+			if (pieces[0] in old_id_to_new_id) and (phen=='yes' or phen=='no'):
 				sample_to_affected[old_id_to_new_id[pieces[0]]] = 1 if phen =='yes' else 0
 
 	with open('../PhasingFamilies/phenotypes/ssc/designated.unaffected.sibling.data/scq_%s_raw.csv' % subtype, 'r') as f:
