@@ -103,21 +103,22 @@ interval_end_to_index = dict([((chrom, x), i) for i, (chrom, x) in enumerate(zip
 
 for sibpair_index, sibpair in enumerate(sibpairs):
 	for chrom, start_pos, end_pos, state in process_phase_file(sibpair):
-		start_index, end_index = interval_start_to_index[(chrom, start_pos)], interval_end_to_index[(chrom, end_pos)]+1
+		if chrom != 'X':
+			start_index, end_index = interval_start_to_index[(chrom, start_pos)], interval_end_to_index[(chrom, end_pos)]+1
 
-		if state[0]==-1 or state[1]==-1:
-			pass
-		elif state[0]==state[1]:
-			is_mat_match[sibpair_index, start_index:end_index] = 1
-		else:
-			is_mat_match[sibpair_index, start_index:end_index] = -1
-			
-		if state[2]==-1 or state[3]==-1:
+			if state[0]==-1 or state[1]==-1:
 				pass
-		elif state[2]==state[3]:
-			is_pat_match[sibpair_index, start_index:end_index] = 1
-		else:
-			is_pat_match[sibpair_index, start_index:end_index] = -1
+			elif state[0]==state[1]:
+				is_mat_match[sibpair_index, start_index:end_index] = 1
+			else:
+				is_mat_match[sibpair_index, start_index:end_index] = -1
+				
+			if state[2]==-1 or state[3]==-1:
+					pass
+			elif state[2]==state[3]:
+				is_pat_match[sibpair_index, start_index:end_index] = 1
+			else:
+				is_pat_match[sibpair_index, start_index:end_index] = -1
 
 
 is_ok = interval_ends - interval_starts > 1
