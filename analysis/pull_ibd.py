@@ -72,11 +72,12 @@ positions = set()
 for sibpair in sibpairs:
 	#print(sibpair)
 	for chrom, start_pos, end_pos, state in process_phase_file(sibpair):
-		#print(chrom, start_pos, end_pos, state)
-		positions.add((chrom, start_pos))
-		positions.add((chrom, end_pos))
+		if chrom != 'X':
+			#print(chrom, start_pos, end_pos, state)
+			positions.add((chrom, start_pos))
+			positions.add((chrom, end_pos))
 
-positions = sorted(positions, key=lambda x: (int(x[0]), x[1]) if x[0].isdigit() else x)
+positions = sorted(positions, key=lambda x: (int(x[0]), x[1]))
 chroms, interval_starts, interval_ends = [], [], []
 prev_chrom, prev_pos = None, None
 for c, p in positions:
