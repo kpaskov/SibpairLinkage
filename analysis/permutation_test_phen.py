@@ -106,7 +106,7 @@ if dataset == 'ssc.hg38':
 		reader = csv.reader(f)
 		for pieces in reader:
 			phen = pieces[13+phen_index]
-			if phen=='yes' or phen=='no':
+			if (pieces[0] in old_id_to_new_id) and (phen=='yes' or phen=='no'):
 				sample_to_affected[old_id_to_new_id[pieces[0]]] = 1 if phen =='yes' else 0
 
 
