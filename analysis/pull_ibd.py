@@ -12,6 +12,8 @@ import csv
 import sys
 
 dataset = sys.argv[1]
+if len(sys.argv)>2 and sys.argv[2]=='--conservative':
+	conservative = True
 interval_chrom, interval_start_pos, interval_end_pos = None, None, None
 
 output_file = dataset
@@ -54,6 +56,8 @@ def process_phase_file(sibpair):
 			chrom = pieces[0][3:]
 			start_pos, end_pos = [int(x) for x in pieces[-2:]]
 			state = np.array([int(x) for x in pieces[1:-2]])[sib_phase_indices]
+			if conservative and pieces[-3] == '1':
+				state[:] = -1
 
 			if current_chrom is None:
 				current_chrom, current_start_pos, current_end_pos, current_state = chrom, start_pos, end_pos, state
