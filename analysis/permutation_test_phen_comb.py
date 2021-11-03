@@ -16,7 +16,7 @@ num_trials = sys.argv[1]
 interval_chrom, interval_start_pos, interval_end_pos = None, None, None
 phen_index = int(sys.argv[2])
 
-if len(sys.argv>3):
+if len(sys.argv)>3:
 	phen_index2s = [int(sys.argv[3])]
 else:
 	phen_index2s = range(phen_index+1, 40)
