@@ -11,10 +11,10 @@ import random
 import csv
 import sys
 
-dataset = 'spark'
-num_trials = 1000
+dataset = sys.argv[0]
+num_trials = sys.argv[1]
 interval_chrom, interval_start_pos, interval_end_pos = None, None, None
-phen_index = int(sys.argv[1])
+phen_index = int(sys.argv[2])
 
 output_file = dataset
 if interval_chrom is not None:
