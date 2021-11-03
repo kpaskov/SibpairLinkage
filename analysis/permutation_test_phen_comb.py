@@ -16,6 +16,11 @@ num_trials = sys.argv[1]
 interval_chrom, interval_start_pos, interval_end_pos = None, None, None
 phen_index = int(sys.argv[2])
 
+if len(sys.argv>3):
+	phen_index2s = [int(sys.argv[3])]
+else:
+	phen_index2s = range(phen_index+1, 40)
+
 output_file = dataset
 if interval_chrom is not None:
 	output_file+= '.chr%s' % interval_chrom
@@ -79,7 +84,7 @@ print('ready')
 
 aut_response = ['0.0']*2 + ['1.0']*6 + ['0.0'] + ['1.0']*9 + ['0.0']*22
 
-for phen_index2 in range(phen_index+1, 40):
+for phen_index2 in phen_index2s:
 	try:
 		print('SCQ', phen_index, phen_index2)
 		phen_indices = [phen_index, phen_index2]
