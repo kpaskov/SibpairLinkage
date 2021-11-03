@@ -11,13 +11,13 @@ import random
 import csv
 import sys
 
-dataset = sys.argv[0]
-num_trials = sys.argv[1]
+dataset = sys.argv[1]
+num_trials = sys.argv[2]
 interval_chrom, interval_start_pos, interval_end_pos = None, None, None
-phen_index = int(sys.argv[2])
+phen_index = int(sys.argv[3])
 
-if len(sys.argv)>3:
-	phen_index2s = [int(sys.argv[3])]
+if len(sys.argv)>4:
+	phen_index2s = [int(sys.argv[4])]
 else:
 	phen_index2s = range(phen_index+1, 40)
 
