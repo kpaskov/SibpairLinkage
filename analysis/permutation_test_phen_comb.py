@@ -12,7 +12,7 @@ import csv
 import sys
 
 dataset = sys.argv[1]
-num_trials = sys.argv[2]
+num_trials = int(sys.argv[2])
 interval_chrom, interval_start_pos, interval_end_pos = None, None, None
 phen_index = int(sys.argv[3])
 
