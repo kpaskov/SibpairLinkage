@@ -128,7 +128,7 @@ print(all_pvalues.shape)
 
 print(np.min(all_pvalues))
 
-np.save('permutation_tests/scq%s.%s.npy' % ('.'.join([i+1 for i in phen_indices]), output_file), all_pvalues)
+np.save('permutation_tests/scq%s.%s.npy' % ('.'.join([str(i+1) for i in phen_indices]), output_file), all_pvalues)
 
 
 
