@@ -22,7 +22,7 @@ if interval_start_pos is not None or interval_end_pos is not None:
 	output_file += '.%d-%d' % (interval_start_pos, interval_end_pos)
 
 
-with open('../PhasingFamilies/recomb_%s/sibpairs.json' % dataset, 'r') as f:
+with open('../PhasingFamilies/recomb_%s/sibpairs.json' % dataset.split('.')[0], 'r') as f:
 	sibpairs = json.load(f)
 
 is_mat_match = np.load('permutation_tests/phen.%s.mat_ibd.npy' % output_file)

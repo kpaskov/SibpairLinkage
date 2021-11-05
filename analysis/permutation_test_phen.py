@@ -11,9 +11,10 @@ import random
 import csv
 import sys
 
-dataset = 'ssc.hg38'
-subtype = 'current' #current/life
-num_trials = 1000
+dataset = 'spark.cytoband'
+ibd_file = '../permutation_tests/'
+subtype = None #current/life
+num_trials = 10000
 interval_chrom, interval_start_pos, interval_end_pos = None, None, None
 phen_index = int(sys.argv[1])
 
@@ -46,7 +47,7 @@ if interval_start_pos is not None or interval_end_pos is not None:
 #interval_chrom, interval_start_pos, interval_end_pos = '17', 6426749, 6978790
 #interval_chrom, interval_start_pos, interval_end_pos = '10', 125067164, 126635114
 
-with open('../PhasingFamilies/recomb_%s/sibpairs.json' % dataset, 'r') as f:
+with open('../PhasingFamilies/recomb_%s/sibpairs.json' % dataset.split('.')[0], 'r') as f:
 	sibpairs = json.load(f)
 
 is_mat_match = np.load('permutation_tests/phen.%s.mat_ibd.npy' % output_file)
@@ -81,7 +82,7 @@ print('ready')
 print('SCQ', phen_index)
 sample_to_affected = dict()
 
-if dataset == 'spark':
+if dataset.split('.')[0] == 'spark':
 	with open('../PhasingFamilies/phenotypes/spark_v5/spark_v5-scq-prep.csv', 'r') as f:
 		reader = csv.reader(f)
 		for pieces in reader:
@@ -89,7 +90,7 @@ if dataset == 'spark':
 			if phen=='1.0' or phen=='0.0':
 				sample_to_affected[pieces[2]] = 1 if phen =='1.0' else 0
 
-if dataset == 'ssc.hg38':
+if dataset.split('.')[0] == 'ssc.hg38':
 	output_file = output_file + '.' + subtype
 
 	old_id_to_new_id = dict()
