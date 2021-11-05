@@ -11,12 +11,11 @@ import random
 import csv
 import sys
 
-dataset = 'spark.cytoband'
-ibd_file = '../permutation_tests/'
+dataset = sys.argv[1]
 subtype = None #current/life
 num_trials = 10000
 interval_chrom, interval_start_pos, interval_end_pos = None, None, None
-phen_index = int(sys.argv[1])
+phen_index = int(sys.argv[2])
 
 output_file = dataset
 if interval_chrom is not None:
