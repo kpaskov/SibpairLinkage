@@ -277,7 +277,7 @@ if flip:
 final_pvalues = np.zeros((num_intervals, 4))
 for is_mat in range(4):
 
-	orig_indices = np.flip(np.argsort(rand_pvalue[0, :, is_mat]))
+	orig_indices = np.flip(np.argsort(rand_pvalue[0, :, is_mat]), axis=0)
 
 	max_t_k = np.zeros((num_trials+1, num_intervals+1))
 	max_t_k[:, -1] = np.min(rand_pvalue[:, :, is_mat], axis=1)
