@@ -10,63 +10,22 @@ import json
 import random
 import csv
 
-# dataset_name = 'spark+ancestry'
-# ped_files = ['../DATA/spark/spark.ped.quads.ped',
-# '../DATA/ancestry/ancestry.ped.quads.ped']
-# phase_dirs = ['../PhasingFamilies/phased_spark20190423_quads',
-# '../PhasingFamilies/phased_ancestry_quads_38']
-# identicals_files = ['../PhasingFamilies/sibpair_similarity/spark_quads_identicals.txt',
-# '../PhasingFamilies/sibpair_similarity/ancestry_quads_identicals.txt']
-# num_trials = 1000
-# num_affected = 2
-# interval_chrom, interval_start_pos, interval_end_pos = None, None, None
-# num_males = None
 
-#dataset_name = 'spark'
-#ped_files = ['../DATA/spark/sparkfam.ped.quads.ped']
-#phase_dirs = ['../PhasingFamilies/phased_spark_array_quads']
-#identicals_files = ['../PhasingFamilies/phased_spark_array_quads/identicals.txt']
-#num_trials = 1000
-#interval_chrom, interval_start_pos, interval_end_pos = None, None, None
-#num_males = None
-#na = 0
-
-#dataset_name = 'spark'
-#dataset_dir = '../PhasingFamilies/recomb_spark'
-#ped_file = '../DATA/spark/sparkfam.ped.quads.ped'
+dataset_name = 'spark'
+dataset_dir = '../PhasingFamilies/recomb_spark'
+ped_file = '../DATA/spark/sparkfam.ped.quads.ped'
 #interval_chrom, interval_start_pos, interval_end_pos = '7', 4101620, 4747462
 #interval_chrom, interval_start_pos, interval_end_pos = '19', 3604269, 3718439
-#interval_chrom, interval_start_pos, interval_end_pos = None, None, None
-crunch = False
-
-dataset_name = 'ancestry'
-dataset_dir = '../PhasingFamilies/recomb_ancestry'
-ped_file = '../DATA/ancestry/ancestry.ped.quads.ped'
 interval_chrom, interval_start_pos, interval_end_pos = None, None, None
 crunch = False
-#interval_chrom, interval_start_pos, interval_end_pos = '8', 72897465, 73361654
-#interval_chrom, interval_start_pos, interval_end_pos = '17', 6426749, 6978790
 
-
-#dataset_name = 'ihart.ms2'
-#dataset_dir = '../PhasingFamilies/recomb_ihart.ms2'
-#ped_file = '../DATA/ihart.ms2/ihart.ped.quads.ped'
-#interval_chrom, interval_start_pos, interval_end_pos = None, None, None
-
-#interval_chrom, interval_start_pos, interval_end_pos = '17', 6778683, 6892329
-#dataset_name = 'ihart.chip'
-#ped_files = ['../DATA/ihart.chip/ihart.ped.quads.ped']
-#phase_dirs = ['../PhasingFamilies/phased_ihart.chip_quads38_del']
-#dataset_name = 'ancestry'
-#ped_files = ['../DATA/ancestry/ancestry.ped.quads.ped']
-#phase_dirs = ['../PhasingFamilies/phased_ancestry_quads_del']
 num_trials = 1000
-#interval_chrom, interval_start_pos, interval_end_pos = '22', 48443005, 48564598
-#interval_chrom, interval_start_pos, interval_end_pos = '8', 72897465-1000000, 73361654+1000000
-#interval_chrom, interval_start_pos, interval_end_pos = '17', 6426749-1000000, 6978790+1000000
-#interval_chrom, interval_start_pos, interval_end_pos = '10', 125067164-1000000, 126635114+1000000
-na = 1
-flip = True
+na = 2
+
+
+flip = (na==1)
+
+phen_index = 4
 
 
 # pull phenotype data
@@ -93,8 +52,24 @@ print('families', len(set([x['family'].split('.')[0] for x in sibpairs])))
 print('sibpairs', len(sibpairs))
 #print('num_affected', Counter([x['num_affected'] for x in sibpairs]))
 
+# ---------------------------------- Pull SCQ -----------------------------------------
+print('SCQ', phen_index)
+sample_to_affected = dict()
+
+with open('../PhasingFamilies/phenotypes/spark_v5/spark_v5-scq-prep.csv', 'r') as f:
+	reader = csv.reader(f)
+	for pieces in reader:
+		phen = pieces[13+phen_index]
+		if phen=='1.0' or phen=='0.0':
+			sample_to_affected[pieces[2]] = 1 if phen =='1.0' else 0
+
+aut_aut_na_response = [0]*2 + [1]*6 + [0] + [1]*9 + [0]*22
+
+# ---------------------------------- Pull SCQ -----------------------------------------
+
+
 for sibpair in sibpairs:
-	sibpair['num_affected'] = int(sample_to_affected[sibpair['sibling1']]=='2') + int(sample_to_affected[sibpair['sibling2']]=='2')
+	sibpair['num_affected'] = -1 if (sibpair['sibling1'] not in sample_to_affected or sibpair['sibling2'] not in sample_to_affected) else int(sample_to_affected[sibpair['sibling1']]==aut_aut_na_response[phen_index]) + int(sample_to_affected[sibpair['sibling2']]==aut_aut_na_response[phen_index])
 
 if na == 3:
 	sibpairs = [x for x in sibpairs if x['num_affected']>0]
@@ -239,8 +214,8 @@ if crunch:
 	
 
 
-np.save('permutation_tests/%s.%d.%sis_mat_match.npy' % (dataset_name, na, 'flip.' if flip else ''), is_mat_match)
-np.save('permutation_tests/%s.%d.%sis_pat_match.npy' % (dataset_name, na, 'flip.' if flip else ''), is_pat_match)
+#np.save('permutation_tests/%s.%d.%sis_mat_match.npy' % (dataset_name, na, 'flip.' if flip else ''), is_mat_match)
+#np.save('permutation_tests/%s.%d.%sis_pat_match.npy' % (dataset_name, na, 'flip.' if flip else ''), is_pat_match)
 
 
 
@@ -289,7 +264,7 @@ for i in range(num_trials+1):
 	rand_pvalue[i, :, 3] = np.sum((np.multiply(np.tile(X1[i, :], (is_mat_match.shape[1], 1)).T, is_mat_match)==1) & \
                                   (np.multiply(np.tile(X2[i, :], (is_pat_match.shape[1], 1)).T, is_pat_match)==1), axis=0)
 	if i%100==0:
-		print(i, end=' ')
+		print(i)
 
 # we expect to see less IBD sharing between discordant sibpairs
 if flip:
@@ -319,9 +294,9 @@ for is_mat in range(4):
 	pvalues = np.array([np.max(pvalues[:(i+1)]) for i in np.arange(pvalues.shape[0])])
 	final_pvalues[orig_indices, is_mat] = pvalues
 
-np.save('permutation_tests/%s.%d.%snpy' % (dataset_name, na, 'flip.' if flip else ''), final_pvalues)
-np.save('permutation_tests/%s.%d.%schroms.npy' % (dataset_name, na, 'flip.' if flip else ''), chroms)
-np.save('permutation_tests/%s.%d.%sintervals.npy' % (dataset_name, na, 'flip.' if flip else ''), np.array([interval_starts, interval_ends]))
+np.save('permutation_tests/%s.%d.%d.%snpy' % (dataset_name, na, phen_index, 'flip.' if flip else ''), final_pvalues)
+np.save('permutation_tests/%s.%d.%d.%schroms.npy' % (dataset_name, na, phen_index, 'flip.' if flip else ''), chroms)
+np.save('permutation_tests/%s.%d.%d.%sintervals.npy' % (dataset_name, na, phen_index, 'flip.' if flip else ''), np.array([interval_starts, interval_ends]))
 
 
 

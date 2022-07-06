@@ -9,112 +9,23 @@ import argparse
 import random
 
 parser = argparse.ArgumentParser(description='Calculate inheritance pvalues for sibpairs.')
-parser.add_argument('phase_dir', type=str, help='Directory with phase data.')
-parser.add_argument('ped_file', type=str, help='Ped file for data.')
-parser.add_argument('identicals_file', type=str, help='File containing identical twins.')
+parser.add_argument('dataset', type=str, help='Directory with sibpair data.')
+parser.add_argument('ped_file', type=str, help='Ped file.')
 parser.add_argument('chrom', type=str, help='Chromosome.')
 
 
 args = parser.parse_args()
 
-with open('%s/info.json' % args.phase_dir, 'r') as f:
-	data_dir = json.load(f)['data_dir']
-with open('%s/info.json' % data_dir, 'r') as f:
-	assembly = json.load(f)['assembly']
 
 def pull_phenotype_ped(ped_file):
 	sample_to_sex = dict()
 	sample_to_affected = dict()
-	parents_to_children = defaultdict(list)
 	with open(ped_file, 'r') as f:
 		for line in f:
 			pieces = line.strip().split('\t')
 			sample_to_sex[pieces[1]] = pieces[4]
 			sample_to_affected[pieces[1]] = pieces[5]
-			if pieces[2] != '0' and pieces[3] != '0':
-				parents_to_children[(pieces[0], pieces[3], pieces[2])].append(pieces[1])
-	return sample_to_affected, sample_to_sex, parents_to_children
-
-Sibpair = namedtuple('Sibpair', ['family', 'sibling1', 'sibling2', 'mom', 'dad', 'phase_dir', 'num_affected', 'num_males'])
-def pull_sibpairs(phase_dir, sample_to_affected, sample_to_sex, parents_to_children, identicals_file):
-
-	# pull identicals
-	leave_out = set()
-	with open(identicals_file, 'r') as f:
-		for line in f:
-			pieces = line.strip().split('\t')
-			for sibling1, sibling2 in combinations(pieces, 2):
-				leave_out.add((sibling1, sibling2))
-				leave_out.add((sibling2, sibling1))
-
-
-	# pull sibpairs with phase data
-	sibpair_has_phase_data = set()
-	family_to_inds = dict()
-	for filename in listdir(phase_dir):
-		if filename.endswith('.phased.txt'):
-			family_key = filename[:-11]
-			try:
-				with open('%s/%s' % (phase_dir, filename), 'r')  as f:
-					header = next(f).strip().split('\t')
-					individuals = [header[i][:-4] for i in range(5, len(header)-3, 2)]
-					family_to_inds[family_key] = individuals
-					for sibling1, sibling2 in combinations(individuals[2:], 2):
-						if (sibling1, sibling2) not in leave_out:
-							sibpair_has_phase_data.add((sibling1, sibling2))
-							sibpair_has_phase_data.add((sibling2, sibling1))
-			except StopIteration:
-				pass
-
-
-
-	def form_sibpair(family, sibling1, sibling2, mom, dad):
-		return Sibpair(family, sibling1, sibling2, mom, dad,
-			phase_dir,
-			int(sample_to_affected[sibling1]=='2')+int(sample_to_affected[sibling2]=='2'),
-			int(sample_to_sex[sibling1]=='1')+int(sample_to_sex[sibling2]=='1'))
-
-	# pull sibpairs from families
-	sibpairs = []
-	for (family, mom, dad), children in parents_to_children.items():
-		for sibling1, sibling2 in combinations([x for x in children if x in sample_to_affected], 2):
-			if (sibling1, sibling2) in sibpair_has_phase_data:
-				sibpairs.append(form_sibpair(family, min(sibling1, sibling2), max(sibling1, sibling2), mom, dad))
-
-		#aff_children = [x for x in children if x in sample_to_affected and sample_to_affected[x]=='2' and x in child_has_phase_data]
-		#typ_children = [x for x in children if x in sample_to_affected and sample_to_affected[x]=='1' and x in child_has_phase_data]
-
-		## may be no need
-		## we need to keep sibpairs independent so we choose an affected proband and a typical proband
-		## and we form sibpairs with the other siblings
-		#
-		#if len(aff_children)>0:
-		#	aff_proband = random.choice(aff_children)
-		#else:
-		#	aff_proband = None
-		#if len(typ_children)>0:
-		#	typ_proband = random.choice(typ_children)
-		#else:
-		#	typ_proband = None
-		#			
-		#for sibling in [x for x in aff_children+typ_children if x != aff_proband and x != typ_proband]:
-		#	if aff_proband is not None and (aff_proband, sibling) in sibpair_to_famkey:
-		#		sibpairs.append(form_sibpair(aff_proband, sibling, mom, dad))
-		#	if typ_proband is not None and (typ_proband, sibling) in sibpair_to_famkey:
-		#		sibpairs.append(form_sibpair(typ_proband, sibling, mom, dad))
-		#
-		#
-		## form sibpair between probands
-		#if aff_proband is not None and typ_proband is not None and (aff_proband, typ_proband) in sibpair_to_famkey:
-		#	sibpairs.append(form_sibpair(aff_proband, typ_proband, mom, dad))
-	sibpairs = sorted(sibpairs)
-
-	for i in range(len(sibpairs)-1):
-		if sibpairs[i] == sibpairs[i+1]:
-			print(sibpairs[i])
-
-	assert len(sibpairs) == len(set(sibpairs)) # should have no duplicates
-	return sibpairs, family_to_inds
+	return sample_to_affected, sample_to_sex
 
 def pull_intervals(chrom, sibpairs, family_to_inds, mat_pat):
 	positions = set([0])
@@ -247,19 +158,19 @@ def calculate_pvalues(contingency):
 if __name__ == "__main__":
 
 	# pull ped info
-	sample_to_affected, sample_to_sex, parents_to_children = pull_phenotype_ped(args.ped_file,)
+	sample_to_affected, sample_to_sex = pull_phenotype_ped(args.ped_file,)
 
 	# pull sibpairs
-	sibpairs, family_to_inds = pull_sibpairs(args.phase_dir, sample_to_affected, sample_to_sex, parents_to_children, args.identicals_file)
+	with open('%s/sibpairs.json' % args.dataset, 'r') as f:
+		sibpairs = json.load(f)
+	print(len(sibpairs))
 
 	print('Overall')
-	print('families', len(family_to_inds))
 	print('sibpairs', len(sibpairs))
-	print('num_affected', Counter([x.num_affected for x in sibpairs]))
 
 	for num_affected in range(3):
 
-		sibpairs_of_interest = [sp for sp in sibpairs if sp.num_affected == num_affected]
+		sibpairs_of_interest = [sp for sp in sibpairs if int(sample_to_affected[sp['sibling1']]=='2')+int(sample_to_affected[sp['sibling2']]) == num_affected]
 		print('Num affected', num_affected, 'sibpairs used', len(sibpairs_of_interest))
 
 		for mat_pat in ['mat', 'pat', 'both']:

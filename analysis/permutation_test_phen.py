@@ -13,7 +13,7 @@ import sys
 
 dataset = sys.argv[1]
 subtype = None #current/life
-num_trials = 10000
+num_trials = 1000
 interval_chrom, interval_start_pos, interval_end_pos = None, None, None
 phen_index = int(sys.argv[2])
 
