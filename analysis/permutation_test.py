@@ -65,10 +65,7 @@ num_trials = 1000
 #interval_chrom, interval_start_pos, interval_end_pos = '8', 72897465-1000000, 73361654+1000000
 #interval_chrom, interval_start_pos, interval_end_pos = '17', 6426749-1000000, 6978790+1000000
 #interval_chrom, interval_start_pos, interval_end_pos = '10', 125067164-1000000, 126635114+1000000
-na = 2
-
-
-flip = (na==1)
+na = 3
 
 
 # pull phenotype data
@@ -99,9 +96,9 @@ for sibpair in sibpairs:
 	sibpair['num_affected'] = int(sample_to_affected[sibpair['sibling1']]=='2') + int(sample_to_affected[sibpair['sibling2']]=='2')
 
 if na == 3:
-	sibpairs = [x for x in sibpairs if x['num_affected']>0]
+	sibpairs = [x for x in sibpairs]
 else:
-	sibpairs = [x for x in sibpairs if (x['num_affected']==na) and (sample_to_sex[x['sibling1']]==sample_to_sex[x['sibling2']])]
+	sibpairs = [x for x in sibpairs if (x['num_affected']==na)]
 num_sibpairs = len(sibpairs)
 
 
@@ -110,8 +107,8 @@ print('families', len(set([x['family'].split('.')[0] for x in sibpairs])))
 print('sibpairs', len(sibpairs))
 #print('num_affected', Counter([x['num_affected'] for x in sibpairs]))
 
-with open('permutation_tests/%s.%d.%ssibpairs.json' % (dataset_name, na, 'flip.' if flip else ''), 'w+') as f:
-	json.dump(sibpairs, f)
+#with open('permutation_tests/%s.%d.%ssibpairs.json' % (dataset_name, na, 'flip.' if flip else ''), 'w+') as f:#
+#	json.dump(sibpairs, f)
 
 def apply_interval_filter(chrom, start_pos, end_pos):
 	if interval_start_pos is not None or interval_end_pos is not None:
@@ -211,7 +208,7 @@ for sibpair_index, sibpair in enumerate(sibpairs):
 			is_pat_match[sibpair_index, start_index:end_index] = -1
 
 
-is_ok = interval_ends - interval_starts > 1
+is_ok = interval_ends - interval_starts > 100
 interval_starts = interval_starts[is_ok]
 interval_ends = interval_ends[is_ok]
 chroms = np.array([23 if c=='X' else int(c) for c in chroms])[is_ok]
@@ -241,8 +238,8 @@ if crunch:
 	
 
 
-np.save('permutation_tests/%s.%d.%sis_mat_match.npy' % (dataset_name, na, 'flip.' if flip else ''), is_mat_match)
-np.save('permutation_tests/%s.%d.%sis_pat_match.npy' % (dataset_name, na, 'flip.' if flip else ''), is_pat_match)
+#np.save('permutation_tests/%s.%d.is_mat_match.npy' % (dataset_name, na), is_mat_match)
+#np.save('permutation_tests/%s.%d.is_pat_match.npy' % (dataset_name, na), is_pat_match)
 
 
 
@@ -269,6 +266,11 @@ X2[X2==0] = -1
 X1[0, :] = 1
 X2[0, :] = 1
 
+# now make X1 and X2 the IBD-phen relationships
+is_discordant = np.array([sibpair['num_affected']==1 for sibpair in sibpairs])
+X1[:, is_discordant] = -X1[:, is_discordant]
+X2[:, is_discordant] = -X2[:, is_discordant]
+
 print('ready')
 
 if interval_chrom is not None:
@@ -285,17 +287,14 @@ print(na, 'pat')
 rand_pvalue[:, :, 1] = X2.dot(is_pat_match)
 print(na, 'both')
 rand_pvalue[:, :, 2] = rand_pvalue[:, :, 0]+rand_pvalue[:, :, 1]
-print(na, 'cross')
 
-for i in range(num_trials+1):
-	rand_pvalue[i, :, 3] = np.sum((np.multiply(np.tile(X1[i, :], (is_mat_match.shape[1], 1)).T, is_mat_match)==1) & \
-                                  (np.multiply(np.tile(X2[i, :], (is_pat_match.shape[1], 1)).T, is_pat_match)==1), axis=0)
-	if i%100==0:
-		print(i, end=' ')
-
-# we expect to see less IBD sharing between discordant sibpairs
-if flip:
-	rand_pvalue = -rand_pvalue
+#print(na, 'cross')
+#
+#for i in range(num_trials+1):#
+#	rand_pvalue[i, :, 3] = np.sum((np.multiply(np.tile(X1[i, :], (is_mat_match.shape[1], 1)).T, is_mat_match)==1) & \
+#                                  (np.multiply(np.tile(X2[i, :], (is_pat_match.shape[1], 1)).T, is_pat_match)==1), axis=0)#
+#	if i%100==0:
+#		print(i, end=' ')
 
 # -------------------- implementing Westfall-Young max T stepdown procedure
 
@@ -321,9 +320,9 @@ for is_mat in range(4):
 	pvalues = np.array([np.max(pvalues[:(i+1)]) for i in np.arange(pvalues.shape[0])])
 	final_pvalues[orig_indices, is_mat] = pvalues
 
-np.save('permutation_tests/%s.%d.%snpy' % (dataset_name, na, 'flip.' if flip else ''), final_pvalues)
-np.save('permutation_tests/%s.%d.%schroms.npy' % (dataset_name, na, 'flip.' if flip else ''), chroms)
-np.save('permutation_tests/%s.%d.%sintervals.npy' % (dataset_name, na, 'flip.' if flip else ''), np.array([interval_starts, interval_ends]))
+np.save('permutation_tests/%s.%d.npy' % (dataset_name, na), final_pvalues)
+np.save('permutation_tests/%s.%d.chroms.npy' % (dataset_name, na), chroms)
+np.save('permutation_tests/%s.%d.intervals.npy' % (dataset_name, na), np.array([interval_starts, interval_ends]))
 
 
 
