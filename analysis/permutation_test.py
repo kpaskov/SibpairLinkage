@@ -31,19 +31,19 @@ import csv
 #num_males = None
 #na = 0
 
-#dataset_name = 'spark'
-#dataset_dir = '../PhasingFamilies/recomb_spark'
-#ped_file = '../DATA/spark/sparkfam.ped.quads.ped'
+dataset_name = 'spark'
+dataset_dir = '../PhasingFamilies/recomb_spark'
+ped_file = '../DATA/spark/sparkfam.ped.quads.ped'
 #interval_chrom, interval_start_pos, interval_end_pos = '7', 4101620, 4747462
 #interval_chrom, interval_start_pos, interval_end_pos = '19', 3604269, 3718439
-#interval_chrom, interval_start_pos, interval_end_pos = None, None, None
-crunch = False
-
-dataset_name = 'ancestry'
-dataset_dir = '../PhasingFamilies/recomb_ancestry'
-ped_file = '../DATA/ancestry/ancestry.ped.quads.ped'
 interval_chrom, interval_start_pos, interval_end_pos = None, None, None
 crunch = False
+
+#dataset_name = 'ancestry'
+#dataset_dir = '../PhasingFamilies/recomb_ancestry'
+#ped_file = '../DATA/ancestry/ancestry.ped.quads.ped'
+#interval_chrom, interval_start_pos, interval_end_pos = None, None, None
+#crunch = False
 #interval_chrom, interval_start_pos, interval_end_pos = '8', 72897465, 73361654
 #interval_chrom, interval_start_pos, interval_end_pos = '17', 6426749, 6978790
 
@@ -65,8 +65,10 @@ num_trials = 1000
 #interval_chrom, interval_start_pos, interval_end_pos = '8', 72897465-1000000, 73361654+1000000
 #interval_chrom, interval_start_pos, interval_end_pos = '17', 6426749-1000000, 6978790+1000000
 #interval_chrom, interval_start_pos, interval_end_pos = '10', 125067164-1000000, 126635114+1000000
-na = 1
-flip = True
+na = 2
+
+
+flip = (na==1)
 
 
 # pull phenotype data
@@ -99,7 +101,7 @@ for sibpair in sibpairs:
 if na == 3:
 	sibpairs = [x for x in sibpairs if x['num_affected']>0]
 else:
-	sibpairs = [x for x in sibpairs if x['num_affected']==na]
+	sibpairs = [x for x in sibpairs if (x['num_affected']==na) and (sample_to_sex[sibpair['sibling1']]==sample_to_sex[sibpair['sibling2']])]
 num_sibpairs = len(sibpairs)
 
 

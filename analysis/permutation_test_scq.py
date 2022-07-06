@@ -74,7 +74,7 @@ for sibpair in sibpairs:
 if na == 3:
 	sibpairs = [x for x in sibpairs if x['num_affected']>0]
 else:
-	sibpairs = [x for x in sibpairs if (x['num_affected']==na) and (sample_to_sex[sibpair['sibling1']]==sample_to_sex[sibpair['sibling2']])]
+	sibpairs = [x for x in sibpairs if (x['num_affected']==na) and (sample_to_sex[x['sibling1']]==sample_to_sex[x['sibling2']])]
 num_sibpairs = len(sibpairs)
 
 
@@ -83,8 +83,8 @@ print('families', len(set([x['family'].split('.')[0] for x in sibpairs])))
 print('sibpairs', len(sibpairs))
 #print('num_affected', Counter([x['num_affected'] for x in sibpairs]))
 
-with open('permutation_tests/%s.%d.%ssibpairs.json' % (dataset_name, na, 'flip.' if flip else ''), 'w+') as f:
-	json.dump(sibpairs, f)
+#with open('permutation_tests/%s.%d.%ssibpairs.json' % (dataset_name, na, 'flip.' if flip else ''), 'w+') as f:
+#	json.dump(sibpairs, f)
 
 def apply_interval_filter(chrom, start_pos, end_pos):
 	if interval_start_pos is not None or interval_end_pos is not None:
