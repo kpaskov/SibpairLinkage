@@ -101,7 +101,7 @@ for sibpair in sibpairs:
 if na == 3:
 	sibpairs = [x for x in sibpairs if x['num_affected']>0]
 else:
-	sibpairs = [x for x in sibpairs if (x['num_affected']==na) and (sample_to_sex[sibpair['sibling1']]==sample_to_sex[sibpair['sibling2']])]
+	sibpairs = [x for x in sibpairs if (x['num_affected']==na) and (sample_to_sex[x['sibling1']]==sample_to_sex[x['sibling2']])]
 num_sibpairs = len(sibpairs)
 
 

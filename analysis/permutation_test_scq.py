@@ -38,7 +38,7 @@ with open(ped_file, 'r') as f:
 		sample_to_sex[pieces[2]] = '1'
 		sample_to_affected[pieces[1]] = pieces[5]
 
-with open('%s/sibpairs.%d.json' % (dataset_dir, phen_index), 'r') as f:
+with open('%s/sibpairs.json' % dataset_dir, 'r') as f:
 	sibpairs = json.load(f)
 
 
