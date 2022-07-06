@@ -38,7 +38,7 @@ with open(ped_file, 'r') as f:
 		sample_to_sex[pieces[2]] = '1'
 		sample_to_affected[pieces[1]] = pieces[5]
 
-with open('%s/sibpairs.json' % dataset_dir, 'r') as f:
+with open('%s/sibpairs.%d.json' % (dataset_dir, phen_index), 'r') as f:
 	sibpairs = json.load(f)
 
 
@@ -74,7 +74,7 @@ for sibpair in sibpairs:
 if na == 3:
 	sibpairs = [x for x in sibpairs if x['num_affected']>0]
 else:
-	sibpairs = [x for x in sibpairs if x['num_affected']==na]
+	sibpairs = [x for x in sibpairs if (x['num_affected']==na) and (sample_to_sex[sibpair['sibling1']]==sample_to_sex[sibpair['sibling2']])]
 num_sibpairs = len(sibpairs)
 
 
