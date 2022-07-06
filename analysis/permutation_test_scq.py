@@ -9,7 +9,7 @@ from os import listdir
 import json
 import random
 import csv
-
+import sys
 
 dataset_name = 'spark'
 dataset_dir = '../PhasingFamilies/recomb_spark'
@@ -25,7 +25,7 @@ na = 2
 
 flip = (na==1)
 
-phen_index = 4
+phen_index = int(sys.argv[1])
 
 
 # pull phenotype data
