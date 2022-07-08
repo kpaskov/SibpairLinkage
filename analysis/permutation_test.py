@@ -51,7 +51,8 @@ crunch = False
 #dataset_name = 'ihart.ms2'
 #dataset_dir = '../PhasingFamilies/recomb_ihart.ms2'
 #ped_file = '../DATA/ihart.ms2/ihart.ped.quads.ped'
-#interval_chrom, interval_start_pos, interval_end_pos = None, None, None
+#interval_chrom, interval_start_pos, interval_end_pos = '17', 6426749, 6978790
+#crunch = True
 
 #interval_chrom, interval_start_pos, interval_end_pos = '17', 6778683, 6892329
 #dataset_name = 'ihart.chip'
@@ -65,7 +66,7 @@ num_trials = 1000
 #interval_chrom, interval_start_pos, interval_end_pos = '8', 72897465-1000000, 73361654+1000000
 #interval_chrom, interval_start_pos, interval_end_pos = '17', 6426749-1000000, 6978790+1000000
 #interval_chrom, interval_start_pos, interval_end_pos = '10', 125067164-1000000, 126635114+1000000
-na = 3
+na = 2
 
 
 # pull phenotype data
@@ -107,8 +108,8 @@ print('families', len(set([x['family'].split('.')[0] for x in sibpairs])))
 print('sibpairs', len(sibpairs))
 #print('num_affected', Counter([x['num_affected'] for x in sibpairs]))
 
-#with open('permutation_tests/%s.%d.%ssibpairs.json' % (dataset_name, na, 'flip.' if flip else ''), 'w+') as f:#
-#	json.dump(sibpairs, f)
+with open('permutation_tests/%s.%d.sibpairs.json' % (dataset_name, na), 'w+') as f:#
+	json.dump(sibpairs, f)
 
 def apply_interval_filter(chrom, start_pos, end_pos):
 	if interval_start_pos is not None or interval_end_pos is not None:
@@ -208,7 +209,7 @@ for sibpair_index, sibpair in enumerate(sibpairs):
 			is_pat_match[sibpair_index, start_index:end_index] = -1
 
 
-is_ok = interval_ends - interval_starts > 100
+is_ok = interval_ends - interval_starts > 1
 interval_starts = interval_starts[is_ok]
 interval_ends = interval_ends[is_ok]
 chroms = np.array([23 if c=='X' else int(c) for c in chroms])[is_ok]
@@ -238,89 +239,89 @@ if crunch:
 	
 
 
-#np.save('permutation_tests/%s.%d.is_mat_match.npy' % (dataset_name, na), is_mat_match)
-#np.save('permutation_tests/%s.%d.is_pat_match.npy' % (dataset_name, na), is_pat_match)
+np.save('permutation_tests/%s.%d.is_mat_match.npy' % (dataset_name, na), is_mat_match)
+np.save('permutation_tests/%s.%d.is_pat_match.npy' % (dataset_name, na), is_pat_match)
 
 
 
-print(is_mat_match.shape, is_pat_match.shape)
+# print(is_mat_match.shape, is_pat_match.shape)
 
-# take into account sibling structure across quads
-individuals = sorted(set([x['sibling1'] for x in sibpairs] + [x['sibling2'] for x in sibpairs]))
-ind_to_index = dict([(x, i) for i, x in enumerate(individuals)])
-sibling1_indices = np.array([ind_to_index[x['sibling1']] for x in sibpairs])
-sibling2_indices = np.array([ind_to_index[x['sibling2']] for x in sibpairs])
+# # take into account sibling structure across quads
+# individuals = sorted(set([x['sibling1'] for x in sibpairs] + [x['sibling2'] for x in sibpairs]))
+# ind_to_index = dict([(x, i) for i, x in enumerate(individuals)])
+# sibling1_indices = np.array([ind_to_index[x['sibling1']] for x in sibpairs])
+# sibling2_indices = np.array([ind_to_index[x['sibling2']] for x in sibpairs])
 
-A = np.random.randint(0, high=2, size=(num_trials+1, len(individuals), 2))
-X1 = (A[:, sibling1_indices, 0] == A[:, sibling2_indices, 0]).astype(int)
-X2 = (A[:, sibling1_indices, 1] == A[:, sibling2_indices, 1]).astype(int)
+# A = np.random.randint(0, high=2, size=(num_trials+1, len(individuals), 2))
+# X1 = (A[:, sibling1_indices, 0] == A[:, sibling2_indices, 0]).astype(int)
+# X2 = (A[:, sibling1_indices, 1] == A[:, sibling2_indices, 1]).astype(int)
 
-# randomly flip IBD in sibpairs
-#X1 = np.random.randint(0, high=2, size=(num_trials+1, len(sibpairs)))
-#X2 = np.random.randint(0, high=2, size=(num_trials+1, len(sibpairs)))
+# # randomly flip IBD in sibpairs
+# #X1 = np.random.randint(0, high=2, size=(num_trials+1, len(sibpairs)))
+# #X2 = np.random.randint(0, high=2, size=(num_trials+1, len(sibpairs)))
 
-X1[X1==0] = -1
-X2[X2==0] = -1
+# X1[X1==0] = -1
+# X2[X2==0] = -1
 
-# first entry is actual IBD relationships
-X1[0, :] = 1
-X2[0, :] = 1
+# # first entry is actual IBD relationships
+# X1[0, :] = 1
+# X2[0, :] = 1
 
-# now make X1 and X2 the IBD-phen relationships
-is_discordant = np.array([sibpair['num_affected']==1 for sibpair in sibpairs])
-X1[:, is_discordant] = -X1[:, is_discordant]
-X2[:, is_discordant] = -X2[:, is_discordant]
+# # now make X1 and X2 the IBD-phen relationships
+# is_discordant = np.array([sibpair['num_affected']==1 for sibpair in sibpairs])
+# X1[:, is_discordant] = -X1[:, is_discordant]
+# X2[:, is_discordant] = -X2[:, is_discordant]
 
-print('ready')
+# print('ready')
 
-if interval_chrom is not None:
-	dataset_name += '.chr%s' % interval_chrom
-if interval_start_pos is not None or interval_end_pos is not None:
-	dataset_name += '.%d-%d' % (interval_start_pos, interval_end_pos)
+# if interval_chrom is not None:
+# 	dataset_name += '.chr%s' % interval_chrom
+# if interval_start_pos is not None or interval_end_pos is not None:
+# 	dataset_name += '.%d-%d' % (interval_start_pos, interval_end_pos)
 
-# trial, interval, mat/pat
-rand_pvalue = np.zeros((num_trials+1, num_intervals, 4), dtype=int)
+# # trial, interval, mat/pat
+# rand_pvalue = np.zeros((num_trials+1, num_intervals, 4), dtype=int)
 
-print(na, 'mat')
-rand_pvalue[:, :, 0] = X1.dot(is_mat_match)
-print(na, 'pat')
-rand_pvalue[:, :, 1] = X2.dot(is_pat_match)
-print(na, 'both')
-rand_pvalue[:, :, 2] = rand_pvalue[:, :, 0]+rand_pvalue[:, :, 1]
+# print(na, 'mat')
+# rand_pvalue[:, :, 0] = X1.dot(is_mat_match)
+# print(na, 'pat')
+# rand_pvalue[:, :, 1] = X2.dot(is_pat_match)
+# print(na, 'both')
+# rand_pvalue[:, :, 2] = rand_pvalue[:, :, 0]+rand_pvalue[:, :, 1]
 
-#print(na, 'cross')
-#
-#for i in range(num_trials+1):#
-#	rand_pvalue[i, :, 3] = np.sum((np.multiply(np.tile(X1[i, :], (is_mat_match.shape[1], 1)).T, is_mat_match)==1) & \
-#                                  (np.multiply(np.tile(X2[i, :], (is_pat_match.shape[1], 1)).T, is_pat_match)==1), axis=0)#
-#	if i%100==0:
-#		print(i, end=' ')
+# #print(na, 'cross')
+# #
+# #for i in range(num_trials+1):#
+# #	rand_pvalue[i, :, 3] = np.sum((np.multiply(np.tile(X1[i, :], (is_mat_match.shape[1], 1)).T, is_mat_match)==1) & \
+# #                                  (np.multiply(np.tile(X2[i, :], (is_pat_match.shape[1], 1)).T, is_pat_match)==1), axis=0)#
+# #	if i%100==0:
+# #		print(i, end=' ')
 
-# -------------------- implementing Westfall-Young max T stepdown procedure
+# # -------------------- implementing Westfall-Young max T stepdown procedure
 
-# indices are sorted along interval axis from interval with most IBD sharing
-# to least IBD sharing
-final_pvalues = np.zeros((num_intervals, 4))
-for is_mat in range(4):
+# # indices are sorted along interval axis from interval with most IBD sharing
+# # to least IBD sharing
+# final_pvalues = np.zeros((num_intervals, 4))
+# for is_mat in range(4):
 
-	orig_indices = np.flip(np.argsort(rand_pvalue[0, :, is_mat]))
+# 	orig_indices = np.flip(np.argsort(rand_pvalue[0, :, is_mat]))
 
-	max_t_k = np.zeros((num_trials+1, num_intervals+1))
-	max_t_k[:, -1] = np.min(rand_pvalue[:, :, is_mat], axis=1)
-	for i, j in list(reversed(list(enumerate(orig_indices)))):
-		max_t_k[:, i] = np.maximum(max_t_k[:, i+1], rand_pvalue[:, j, is_mat])
-	max_t_k = max_t_k[:, :-1]
+# 	max_t_k = np.zeros((num_trials+1, num_intervals+1))
+# 	max_t_k[:, -1] = np.min(rand_pvalue[:, :, is_mat], axis=1)
+# 	for i, j in list(reversed(list(enumerate(orig_indices)))):
+# 		max_t_k[:, i] = np.maximum(max_t_k[:, i+1], rand_pvalue[:, j, is_mat])
+# 	max_t_k = max_t_k[:, :-1]
 
-	#max_t_k = np.flip(np.sort(rand_pvalue[:, :, is_mat], axis=1), axis=1)
+# 	#max_t_k = np.flip(np.sort(rand_pvalue[:, :, is_mat], axis=1), axis=1)
 	
-	assert np.all(max_t_k[0, :] == rand_pvalue[0, orig_indices, is_mat])
+# 	assert np.all(max_t_k[0, :] == rand_pvalue[0, orig_indices, is_mat])
 
-	# calculate pi(j)
-	pvalues = np.sum(max_t_k[1:, :] >= np.tile(max_t_k[0, :], (num_trials, 1)), axis=0)/num_trials
-	pvalues = np.array([np.max(pvalues[:(i+1)]) for i in np.arange(pvalues.shape[0])])
-	final_pvalues[orig_indices, is_mat] = pvalues
+# 	# calculate pi(j)
+# 	pvalues = np.sum(max_t_k[1:, :] >= np.tile(max_t_k[0, :], (num_trials, 1)), axis=0)/num_trials
+# 	pvalues = np.array([np.max(pvalues[:(i+1)]) for i in np.arange(pvalues.shape[0])])
+# 	final_pvalues[orig_indices, is_mat] = pvalues
 
-np.save('permutation_tests/%s.%d.npy' % (dataset_name, na), final_pvalues)
+# np.save('permutation_tests/%s.%d.npy' % (dataset_name, na), final_pvalues)
 np.save('permutation_tests/%s.%d.chroms.npy' % (dataset_name, na), chroms)
 np.save('permutation_tests/%s.%d.intervals.npy' % (dataset_name, na), np.array([interval_starts, interval_ends]))
 
