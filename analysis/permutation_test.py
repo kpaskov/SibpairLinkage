@@ -313,13 +313,13 @@ rand_pvalue[:, :, 1] = X2.dot(is_pat_match)
 print(na, 'both')
 rand_pvalue[:, :, 2] = rand_pvalue[:, :, 0]+rand_pvalue[:, :, 1]
 
-print(na, 'cross')
+#print(na, 'cross')
 
-for i in range(num_trials+1):#
-	rand_pvalue[i, :, 3] = np.sum((np.multiply(np.tile(X1[i, :], (is_mat_match.shape[1], 1)).T, is_mat_match)==1) & \
-                                  (np.multiply(np.tile(X2[i, :], (is_pat_match.shape[1], 1)).T, is_pat_match)==1), axis=0)#
-	if i%100==0:
-		print(i, end=' ')
+#for i in range(num_trials+1):#
+#	rand_pvalue[i, :, 3] = np.sum((np.multiply(np.tile(X1[i, :], (is_mat_match.shape[1], 1)).T, is_mat_match)==1) & \
+#                                  (np.multiply(np.tile(X2[i, :], (is_pat_match.shape[1], 1)).T, is_pat_match)==1), axis=0)#
+#	if i%100==0:
+#		print(i, end=' ')
 
 # -------------------- implementing Westfall-Young max T stepdown procedure
 
