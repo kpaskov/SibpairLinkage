@@ -81,7 +81,7 @@ num_trials = 1000
 #interval_chrom, interval_start_pos, interval_end_pos = '8', 72897465-1000000, 73361654+1000000
 #interval_chrom, interval_start_pos, interval_end_pos = '17', 6426749-1000000, 6978790+1000000
 #interval_chrom, interval_start_pos, interval_end_pos = '10', 125067164-1000000, 126635114+1000000
-na = 0
+na = 1
 
 
 # pull phenotype data
