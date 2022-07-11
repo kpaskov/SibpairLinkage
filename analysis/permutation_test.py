@@ -81,7 +81,7 @@ num_trials = 1000
 #interval_chrom, interval_start_pos, interval_end_pos = '8', 72897465-1000000, 73361654+1000000
 #interval_chrom, interval_start_pos, interval_end_pos = '17', 6426749-1000000, 6978790+1000000
 #interval_chrom, interval_start_pos, interval_end_pos = '10', 125067164-1000000, 126635114+1000000
-na = 1
+na = 0
 
 
 # pull phenotype data
@@ -123,7 +123,7 @@ for sibpair in sibpairs:
 if na == 3:
 	sibpairs = [x for x in sibpairs]
 else:
-	sibpairs = [x for x in sibpairs if (x['num_affected']==na) and sample_to_sex[x['sibling1']]==sample_to_sex[x['sibling2']]]
+	sibpairs = [x for x in sibpairs if (x['num_affected']==na)]
 num_sibpairs = len(sibpairs)
 
 
