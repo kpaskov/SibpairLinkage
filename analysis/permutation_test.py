@@ -82,7 +82,7 @@ num_trials = 1000
 #interval_chrom, interval_start_pos, interval_end_pos = '17', 6426749-1000000, 6978790+1000000
 #interval_chrom, interval_start_pos, interval_end_pos = '10', 125067164-1000000, 126635114+1000000
 na = 1
-
+interval_size = None
 
 # pull phenotype data
 sample_to_affected, sample_to_sex = dict(), dict()
@@ -198,6 +198,7 @@ interval_starts = np.array(interval_starts)
 interval_ends = np.array(interval_ends)
 num_intervals = len(interval_starts)
 print('intervals', num_intervals)
+
 #print(interval_starts)
 #print(interval_ends)
 #print(interval_ends-interval_starts)
@@ -233,38 +234,101 @@ for sibpair_index, sibpair in enumerate(sibpairs):
 			is_pat_match[sibpair_index, start_index:end_index] = -1
 
 
-is_ok = interval_ends - interval_starts > 1
-interval_starts = interval_starts[is_ok]
-interval_ends = interval_ends[is_ok]
-chroms = np.array([23 if c=='X' else int(c) for c in chroms])[is_ok]
-is_mat_match = is_mat_match[:, is_ok]
-is_pat_match = is_pat_match[:, is_ok]
-num_intervals = np.sum(is_ok)
+# condense intervals
 
-if crunch:
-	is_mat_match_new = np.zeros((is_mat_match.shape[0], 1))
-	frac_ibd_mat = is_mat_match.dot((interval_ends-interval_starts))/np.sum(interval_ends-interval_starts)
-	is_mat_match_new[frac_ibd_mat>0] = 1
-	is_mat_match_new[frac_ibd_mat<0] = -1
+if interval_size is not None:
 
-	is_pat_match_new = np.zeros((is_pat_match.shape[0], 1))
-	frac_ibd_pat = is_pat_match.dot((interval_ends-interval_starts))/np.sum(interval_ends-interval_starts)
-	is_pat_match_new[frac_ibd_pat>0] = 1
-	is_pat_match_new[frac_ibd_pat<0] = -1
+	current_start, current_chrom = interval_starts[0], chroms[0]
+	mat_ibd, pat_ibd = np.zeros((num_sibpairs, )), np.zeros((num_sibpairs, ))
+	new_chroms, new_interval_starts, new_interval_ends = [], [], []
+	new_is_mat_match, new_is_pat_match = [], []
 
-	is_mat_match = is_mat_match_new
-	is_pat_match = is_pat_match_new
+	i = 0
+	while i < len(chroms):
+		if current_chrom != chroms[i]:
+			# if the interval is on a different chromosome
+			new_chroms.append(int(current_chrom))
+			new_interval_starts.append(current_start)
+			new_interval_ends.append(current_start+interval_size)
+			new_is_mat_match.append(np.sign(mat_ibd))
+			new_is_pat_match.append(np.sign(pat_ibd))
+			current_start, current_chrom = 1, chroms[i]
+			mat_ibd, pat_ibd = np.zeros((num_sibpairs, )), np.zeros((num_sibpairs, ))
 
-	num_intervals = 1
+		elif interval_starts[i] >= (current_start+interval_size):
+			# if the interval is further along than where we are on the genome
+			new_chroms.append(int(current_chrom))
+			new_interval_starts.append(current_start)
+			new_interval_ends.append(current_start+interval_size)
+			new_is_mat_match.append(np.sign(mat_ibd))
+			new_is_pat_match.append(np.sign(pat_ibd))
+			current_start = current_start+interval_size
+			mat_ibd, pat_ibd = np.zeros((num_sibpairs, )), np.zeros((num_sibpairs, ))
 
-	interval_starts = np.array([interval_start_pos])
-	intervals_ends = np.array([interval_end_pos])
-	chroms = np.array([23 if interval_chrom=='X' else int(interval_chrom)])
+		else:
+			overlap = np.clip(min(interval_ends[i], current_start+interval_size)-max(interval_starts[i], current_start), 0, None)
+			mat_ibd += is_mat_match[:, i]*overlap
+			pat_ibd += is_pat_match[:, i]*overlap
+			if interval_ends[i] > current_start+interval_size:
+				# if the interval extends past where we are, move the current position along
+				new_chroms.append(int(current_chrom))
+				new_interval_starts.append(current_start)
+				new_interval_ends.append(current_start+interval_size)
+				new_is_mat_match.append(np.sign(mat_ibd))
+				new_is_pat_match.append(np.sign(pat_ibd))
+				current_start = current_start+interval_size
+				mat_ibd, pat_ibd = np.zeros((num_sibpairs, )), np.zeros((num_sibpairs, ))
+
+			else:
+				# move the interval along
+				i += 1
+	# finish it off
+	new_chroms.append(int(current_chrom))
+	new_interval_starts.append(current_start)
+	new_interval_ends.append(current_start+interval_size)
+	new_is_mat_match.append(np.sign(mat_ibd))
+	new_is_pat_match.append(np.sign(pat_ibd))
+
+	chroms = np.array(new_chroms)
+	interval_starts = np.array(new_interval_starts)
+	interval_ends = np.array(new_interval_ends)
+	is_mat_match = np.array(new_is_mat_match).T
+	is_pat_match = np.array(new_is_pat_match).T
+	num_intervals = len(chroms)
+	print('intervals', num_intervals, is_mat_match.shape, is_pat_match.shape)
+
+# is_ok = interval_ends - interval_starts > 1
+# interval_starts = interval_starts[is_ok]
+# interval_ends = interval_ends[is_ok]
+# chroms = np.array([23 if c=='X' else int(c) for c in chroms])[is_ok]
+# is_mat_match = is_mat_match[:, is_ok]
+# is_pat_match = is_pat_match[:, is_ok]
+# num_intervals = np.sum(is_ok)
+
+# if crunch:
+# 	is_mat_match_new = np.zeros((is_mat_match.shape[0], 1))
+# 	frac_ibd_mat = is_mat_match.dot((interval_ends-interval_starts))/np.sum(interval_ends-interval_starts)
+# 	is_mat_match_new[frac_ibd_mat>0] = 1
+# 	is_mat_match_new[frac_ibd_mat<0] = -1
+
+# 	is_pat_match_new = np.zeros((is_pat_match.shape[0], 1))
+# 	frac_ibd_pat = is_pat_match.dot((interval_ends-interval_starts))/np.sum(interval_ends-interval_starts)
+# 	is_pat_match_new[frac_ibd_pat>0] = 1
+# 	is_pat_match_new[frac_ibd_pat<0] = -1
+
+# 	is_mat_match = is_mat_match_new
+# 	is_pat_match = is_pat_match_new
+
+# 	num_intervals = 1
+
+# 	interval_starts = np.array([interval_start_pos])
+# 	intervals_ends = np.array([interval_end_pos])
+# 	chroms = np.array([23 if interval_chrom=='X' else int(interval_chrom)])
 	
 
 
-np.save('permutation_tests/%s.%d.is_mat_match.npy' % (dataset_name, na), is_mat_match)
-np.save('permutation_tests/%s.%d.is_pat_match.npy' % (dataset_name, na), is_pat_match)
+#np.save('permutation_tests/%s.%d.is_mat_match.npy' % (dataset_name, na), is_mat_match)
+#np.save('permutation_tests/%s.%d.is_pat_match.npy' % (dataset_name, na), is_pat_match)
 
 
 
@@ -326,7 +390,7 @@ rand_pvalue[:, :, 2] = rand_pvalue[:, :, 0]+rand_pvalue[:, :, 1]
 # indices are sorted along interval axis from interval with most IBD sharing
 # to least IBD sharing
 final_pvalues = np.zeros((num_intervals, 4))
-for is_mat in range(4):
+for is_mat in range(3):
 
 	orig_indices = np.flip(np.argsort(rand_pvalue[0, :, is_mat]), axis=0)
 
@@ -345,9 +409,9 @@ for is_mat in range(4):
 	pvalues = np.array([np.max(pvalues[:(i+1)]) for i in np.arange(pvalues.shape[0])])
 	final_pvalues[orig_indices, is_mat] = pvalues
 
-np.save('permutation_tests/%s.%d.npy' % (dataset_name, na), final_pvalues)
-np.save('permutation_tests/%s.%d.chroms.npy' % (dataset_name, na), chroms)
-np.save('permutation_tests/%s.%d.intervals.npy' % (dataset_name, na), np.array([interval_starts, interval_ends]))
+np.save('permutation_tests/%s.%d.%snpy' % (dataset_name, na, '' if interval_size is None else '%d.'%interval_size), final_pvalues)
+np.save('permutation_tests/%s.%d.%schroms.npy' % (dataset_name, na, '' if interval_size is None else '%d.'%interval_size), chroms)
+np.save('permutation_tests/%s.%d.%sintervals.npy' % (dataset_name, na, '' if interval_size is None else '%d.'%interval_size), np.array([interval_starts, interval_ends]))
 
 
 
