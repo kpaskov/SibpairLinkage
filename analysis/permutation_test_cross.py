@@ -292,11 +292,11 @@ for i, j in zip(np.arange(num_intervals-1, -1, -1), orig_indices):
     pvalues[i] = np.sum(max_t_k[1:] >= max_t_k[0])/args.num_trials
     
 
-assert np.all(q == v[np.flip(orig_indices)])
+assert np.all(q == v[np.flip(orig_indices, axis=0)])
 pvalues = np.array([np.max(pvalues[:(i+1)]) for i in np.arange(num_intervals)])
 
 final_pvalues = np.zeros((num_intervals, ))
-final_pvalues[np.flip(orig_indices)] = pvalues
+final_pvalues[np.flip(orig_indices, axis=0)] = pvalues
 
 np.save('permutation_tests/cross.%s.%d.npy' % (dataset_name, args.sibpair_type), final_pvalues)
 np.save('permutation_tests/cross.%s.%d.chroms.npy' % (dataset_name, args.sibpair_type), chroms)
