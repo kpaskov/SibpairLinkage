@@ -286,7 +286,7 @@ max_t_k = -num_sibpairs * np.ones((args.num_trials+1,), dtype=int)
 q = np.zeros((num_intervals,), dtype=int)
 for i, j in zip(np.arange(num_intervals-1, -1, -1), orig_indices):
     if (num_intervals-i)%10000==0:
-        print(num_intervals-i)
+        print(num_intervals-i, flush=True)
     max_t_k = np.maximum(max_t_k, calc_interval(j))
     q[i] = max_t_k[0]
     pvalues[i] = np.sum(max_t_k[1:] >= max_t_k[0])/args.num_trials
