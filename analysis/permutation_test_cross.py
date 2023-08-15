@@ -299,8 +299,17 @@ final_pvalues = np.zeros((num_intervals, ))
 final_pvalues[np.flip(orig_indices, axis=0)] = pvalues
 
 np.save('permutation_tests/cross.%s.%d.npy' % (dataset_name, args.sibpair_type), final_pvalues)
-np.save('permutation_tests/cross.%s.%d.chroms.npy' % (dataset_name, args.sibpair_type), chroms)
 np.save('permutation_tests/cross.%s.%d.intervals.npy' % (dataset_name, args.sibpair_type), np.array([interval_starts[x], interval_ends[x], interval_starts[y], interval_ends[y]]))
 
+with open('permutation_tests/cross.%s.%d.intervals.json' % (dataset_name, args.sibpair_type), 'w+') as f:
+	json.dump([{'interval1_index': int(x[i]),
+				'interval1_chrom': chroms[x[i]],
+				'interval1_start_pos': int(interval_starts[x[i]]),
+				'interval1_start_pos': int(interval_ends[x[i]]),
+				'interval2_index': int(y[i]),
+				'interval2_chrom': chroms[y[i]],
+				'interval2_start_pos': int(interval_starts[y[i]]),
+				'interval2_end_pos': int(interval_ends[y[i]])} for i in range(num_intervals)], 
+		f, indent=4)
 
 
