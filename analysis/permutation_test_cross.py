@@ -293,7 +293,9 @@ for i, j in zip(np.arange(num_intervals-1, -1, -1), orig_indices):
     
 
 assert np.all(q == v[np.flip(orig_indices, axis=0)])
-pvalues = np.array([np.max(pvalues[:(i+1)]) for i in np.arange(num_intervals)])
+
+for i in np.arange(1, num_intervals):
+	pvalues[i] = max(pvalues[i-1], pvalues[i])
 
 final_pvalues = np.zeros((num_intervals, ))
 final_pvalues[np.flip(orig_indices, axis=0)] = pvalues
