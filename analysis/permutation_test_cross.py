@@ -185,10 +185,10 @@ num_intervals = len(interval_starts)
 print('intervals', num_intervals)
 
 with open('permutation_tests/cross.%s.%d.intervals.json' % (dataset_name, args.sibpair_type), 'w+') as f:
-	json.dump([{'interval_index': int(i),
-				'interval_chrom': chroms[i],
-				'interval_start_pos': int(interval_starts[i]),
-				'interval_end_pos': int(interval_ends[i]),
+	json.dump([{'index': int(i),
+				'chrom': chroms[i],
+				'start_pos': int(interval_starts[i]),
+				'end_pos': int(interval_ends[i]),
 				} for i in range(num_intervals)], 
 		f, indent=4)
 
