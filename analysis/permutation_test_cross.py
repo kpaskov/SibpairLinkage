@@ -126,7 +126,7 @@ def process_phase_file(sibpair):
         if args.interval_start_pos is not None and args.interval_end_pos is not None:
             starts[0] = args.interval_start_pos
             ends[-1] = args.interval_end_pos
-        assert np.all([c==args.interval_chrom for c in chroms])
+        #assert np.all([c==args.interval_chrom for c in chroms])
 
     # we don't know what's going on inside crossovers
     for chrom in [str(x) for x in range(1, 23)]:
@@ -184,6 +184,14 @@ interval_ends = np.array(interval_ends)
 num_intervals = len(interval_starts)
 print('intervals', num_intervals)
 
+with open('permutation_tests/cross.%s.%d.intervals.json' % (dataset_name, args.sibpair_type), 'w+') as f:
+	json.dump([{'interval_index': int(i),
+				'interval_chrom': chroms[i],
+				'interval_start_pos': int(interval_starts[i]),
+				'interval_end_pos': int(interval_ends[i]),
+				} for i in range(num_intervals)], 
+		f, indent=4)
+
 # pull sibpair IBD
 
 flip_match = {
@@ -221,7 +229,7 @@ v = np.repeat(np.arange(num_intervals), num_intervals)
 indices = u >= v
 x = u[indices]
 y = v[indices]
-num_intervals = len(x)
+num_intervals = len(u)
 print(num_intervals)
 
 # take into account sibling structure across quads
@@ -257,22 +265,27 @@ def calc_trial(trial_index):
     for j in range(num_sibpairs):
         a = X1[trial_index, j]*is_mat_match[j, :]
         b = X2[trial_index, j]*is_pat_match[j, :]
-        value[((a[x]>=0) & (b[y]>=0)) | ((a[y]>=0) & (b[x]>=0))] += 1
-        value[((a[x]==1) & (b[y]==1)) | ((a[y]==1) & (b[x]==1))] += 1
+        #value[((a[x]>=0) & (b[y]>=0)) | ((a[y]>=0) & (b[x]>=0))] += 1
+        #value[((a[x]==1) & (b[y]==1)) | ((a[y]==1) & (b[x]==1))] += 1
+        value[(a[u]>=0) & (b[v]>=0)] += 1
+        value[(a[u]==1) & (b[v]==1)] += 1
     return value
 
 def calc_interval(interval_index):
-    x_mat = X1*np.tile(is_mat_match[:, x[interval_index]], (args.num_trials+1, 1))
-    x_pat = X2*np.tile(is_pat_match[:, x[interval_index]], (args.num_trials+1, 1))
-    y_mat = X1*np.tile(is_mat_match[:, y[interval_index]], (args.num_trials+1, 1))
-    y_pat = X2*np.tile(is_pat_match[:, y[interval_index]], (args.num_trials+1, 1))
+    x_mat = X1*np.tile(is_mat_match[:, u[interval_index]], (args.num_trials+1, 1))
+    x_pat = X2*np.tile(is_pat_match[:, u[interval_index]], (args.num_trials+1, 1))
+    y_mat = X1*np.tile(is_mat_match[:, v[interval_index]], (args.num_trials+1, 1))
+    y_pat = X2*np.tile(is_pat_match[:, v[interval_index]], (args.num_trials+1, 1))
     
-    return np.sum(((x_mat>=0) & (y_pat>=0)) | ((y_mat>=0) & (x_pat>=0)), axis=1) + \
-           np.sum(((x_mat==1) & (y_pat==1)) | ((y_mat==1) & (x_pat==1)), axis=1) + \
+    #return np.sum(((x_mat>=0) & (y_pat>=0)) | ((y_mat>=0) & (x_pat>=0)), axis=1) + \
+    #       np.sum(((x_mat==1) & (y_pat==1)) | ((y_mat==1) & (x_pat==1)), axis=1) + \
+    #       -num_sibpairs
+    return np.sum((x_mat>=0) & (y_pat>=0), axis=1) + \
+           np.sum((x_mat==1) & (y_pat==1), axis=1) + \
            -num_sibpairs
 
-v = calc_trial(0)
-orig_indices = np.argsort(v)
+z = calc_trial(0)
+orig_indices = np.argsort(z)
 print('first trial complete')
 
 print(num_intervals)
@@ -292,7 +305,7 @@ for i, j in zip(np.arange(num_intervals-1, -1, -1), orig_indices):
     pvalues[i] = np.sum(max_t_k[1:] >= max_t_k[0])/args.num_trials
     
 
-assert np.all(q == v[np.flip(orig_indices, axis=0)])
+assert np.all(q == z[np.flip(orig_indices, axis=0)])
 
 for i in np.arange(1, num_intervals):
 	pvalues[i] = max(pvalues[i-1], pvalues[i])
@@ -300,18 +313,7 @@ for i in np.arange(1, num_intervals):
 final_pvalues = np.zeros((num_intervals, ))
 final_pvalues[np.flip(orig_indices, axis=0)] = pvalues
 
-np.save('permutation_tests/cross.%s.%d.npy' % (dataset_name, args.sibpair_type), final_pvalues)
-np.save('permutation_tests/cross.%s.%d.intervals.npy' % (dataset_name, args.sibpair_type), np.array([interval_starts[x], interval_ends[x], interval_starts[y], interval_ends[y]]))
+np.save('permutation_tests/cross.matpat.%s.%d.npy' % (dataset_name, args.sibpair_type), final_pvalues)
 
-with open('permutation_tests/cross.%s.%d.intervals.json' % (dataset_name, args.sibpair_type), 'w+') as f:
-	json.dump([{'interval1_index': int(x[i]),
-				'interval1_chrom': chroms[x[i]],
-				'interval1_start_pos': int(interval_starts[x[i]]),
-				'interval1_start_pos': int(interval_ends[x[i]]),
-				'interval2_index': int(y[i]),
-				'interval2_chrom': chroms[y[i]],
-				'interval2_start_pos': int(interval_starts[y[i]]),
-				'interval2_end_pos': int(interval_ends[y[i]])} for i in range(num_intervals)], 
-		f, indent=4)
 
 
