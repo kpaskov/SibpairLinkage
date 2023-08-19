@@ -22,22 +22,22 @@ parser.add_argument('dataset_name', type=str, help='Name of test.')
 parser.add_argument('data_dir', type=str, help='Directory of genotype data for the cohort in .npy format.')
 parser.add_argument('ped_file', type=str, help='.ped file')
 parser.add_argument('sibpair_type', type=int, help='Sibpair type to use in test. 0 indicates control-control sibpairs, 1 indicates control-affected sibpairs, 2 indicates affected-affected sibpairs.')
-parser.add_argument('--interval_chrom', type=str, default=None, help='Restrict analysis to an interval within this chrom (or to this chrom).')
-parser.add_argument('--interval_start_pos', type=str, default=None, help='Restrict analysis to an interval starting at this position.')
-parser.add_argument('--interval_end_pos', type=str, default=None, help='Restrict analysis to an interval ending at this position.')
-parser.add_argument('--num_trials', type=int, default=1000, help='Number of trials to use for permutation test.')
-
+parser.add_argument('--num_trials', type=int, default=1000, help='num permutation trials to run')
+parser.add_argument('--mat_interval', type=str, default=None, help='mat interval to consider')
+parser.add_argument('--pat_interval', type=str, default=None, help='pat interval to consider')
+parser.add_argument('--num_males', type=int, default=None, help='restrict sibpairs by sex')
 args = parser.parse_args()
 
 assert args.sibpair_type != 1 # not yet implemented
-assert (args.interval_start_pos is None) == (args.interval_end_pos is None) # if you restrict to an interval, must give start and end
 
 dataset_name = args.dataset_name
 
-if args.interval_chrom is not None:
-	dataset_name += '.chr%s' % args.interval_chrom
-if args.interval_start_pos is not None or args.interval_end_pos is not None:
-	dataset_name += '.%d-%d' % (args.interval_start_pos, args.interval_end_pos)
+if args.num_males is not None:
+	dataset_name += '.nm%d' % args.num_males
+if args.mat_interval is not None:
+	dataset_name += '.mat%s' % args.mat_interval
+if args.pat_interval is not None:
+	dataset_name += '.pat%s' % args.pat_interval
 
 # pull phenotype data
 sample_to_affected, sample_to_sex = dict(), dict()
@@ -70,6 +70,9 @@ sibpairs = [x for x in phase_data.get_sibpairs() if x['is_fully_phased'] and \
                                                     not x['is_ibd_outlier'] and \
                                                     not x['is_crossover_outlier']]
 
+if args.num_males is not None:
+	sibpairs = [x for x in sibpairs if int(sample_to_sex[x['sibling1']]=='1')+int(sample_to_sex[x['sibling2']]=='1')==args.num_males]
+
 
 family_chrom_to_cos = defaultdict(list)
 for co in phase_data.get_crossovers():
@@ -93,6 +96,9 @@ print('families', len(set([x['family'].split('.')[0] for x in sibpairs])))
 print('sibpairs', len(sibpairs))
 #print('num_affected', Counter([x['num_affected'] for x in sibpairs]))
 
+def parse_interval(x):
+	return x.split(':')[0], int(x.split(':')[1].split('-')[0]), int(x.split(':')[1].split('-')[1])
+
 def process_phase_file(sibpair):
     inds = phase_data.get_phase_info(sibpair['family'])['individuals']
     chroms, starts, ends, mat_phases, pat_phases, is_htss = phase_data.parse_phase_file_into_arrays(sibpair['family'])
@@ -102,39 +108,48 @@ def process_phase_file(sibpair):
     mat_match[mat_match==0] = -1
     mat_match[mat_phases[sib1_ind_index, :]==-1] = 0
     mat_match[mat_phases[sib2_ind_index, :]==-1] = 0
-    mat_match[is_htss] = 0
+    #mat_match[is_htss] = 0
         
     pat_match = (pat_phases[sib1_ind_index, :]==pat_phases[sib2_ind_index, :]).astype(int)
     pat_match[pat_match==0] = -1
     pat_match[pat_phases[sib1_ind_index, :]==-1] = 0
     pat_match[pat_phases[sib2_ind_index, :]==-1] = 0
-    pat_match[is_htss] = 0
+    #pat_match[is_htss] = 0
     
     # prune interval
-    if args.interval_chrom is not None:
-        is_in_chrom = np.array([c==args.interval_chrom for c in chroms], dtype=bool)
-        if args.interval_start_pos is not None and args.interval_end_pos is not None:
-            indices = is_in_chrom & (np.minimum(ends, args.interval_end_pos)-np.maximum(starts, args.interval_start_pos)>0)
-        else:
-            indices = is_in_chrom
-        chroms = [chroms[i] for i in np.where(indices)[0]]
-        starts = starts[indices]
-        ends = ends[indices]
-        mat_match = mat_match[indices]
-        pat_match = pat_match[indices]
-        
-        if args.interval_start_pos is not None and args.interval_end_pos is not None:
-            starts[0] = args.interval_start_pos
-            ends[-1] = args.interval_end_pos
-        #assert np.all([c==args.interval_chrom for c in chroms])
+    if (args.mat_interval is not None) and (args.pat_interval is not None):
+        is_selected = np.zeros((len(chroms),), dtype=bool)
+
+        chrom, start_pos, end_pos = parse_interval(args.mat_interval)
+        is_in_chrom = np.array([c==chrom for c in chroms], dtype=bool)
+        is_selected_chrom = is_in_chrom & (np.minimum(ends, end_pos)-np.maximum(starts, start_pos)>0)
+        is_selected[is_selected_chrom] = True
+        starts[is_selected_chrom] = np.maximum(starts[is_selected_chrom], start_pos)
+        ends[is_selected_chrom] = np.minimum(ends[is_selected_chrom], end_pos)
+
+        chrom, start_pos, end_pos = parse_interval(args.pat_interval)
+        is_in_chrom = np.array([c==chrom for c in chroms], dtype=bool)
+        is_selected_chrom = is_in_chrom & (np.minimum(ends, end_pos)-np.maximum(starts, start_pos)>0)
+        is_selected[is_selected_chrom] = True
+        starts[is_selected_chrom] = np.maximum(starts[is_selected_chrom], start_pos)
+        ends[is_selected_chrom] = np.minimum(ends[is_selected_chrom], end_pos)
+
+        chroms = [chroms[i] for i in np.where(is_selected)[0]]
+        starts = starts[is_selected]
+        ends = ends[is_selected]
+        mat_match = mat_match[is_selected]
+        pat_match = pat_match[is_selected]
+
 
     # we don't know what's going on inside crossovers
-    for chrom in [str(x) for x in range(1, 23)]:
+    for chrom in set(chroms):
         is_in_chrom = np.array([c==chrom for c in chroms])
         for co in family_chrom_to_cos[(sibpair['family'], chrom)]:
-            indices = is_in_chrom & (np.minimum(ends, co['end_pos'])-np.maximum(starts, co['start_pos']+1)>0)
-        mat_match[indices] = 0
-        pat_match[indices] = 0
+            if co['is_mat']:
+                mat_match[is_in_chrom & (np.minimum(ends, co['end_pos'])-np.maximum(starts, co['start_pos']+1)>0)] = 0
+            else:
+                pat_match[is_in_chrom & (np.minimum(ends, co['end_pos'])-np.maximum(starts, co['start_pos']+1)>0)] = 0
+
         
     chrom_breaks = np.array([c1!=c2 for c1, c2 in zip(chroms[:-1], chroms[1:])])
     
@@ -155,6 +170,7 @@ def process_phase_file(sibpair):
     #print(len(chroms))
     #for p in zip(chroms, starts, ends, mat_match, pat_match):
     #    print(p)
+    #print(chroms, starts, ends)
     
     return chroms, starts, ends, mat_match, pat_match
        
@@ -201,8 +217,8 @@ flip_match = {
 }
 
 # sibpair, interval
-is_mat_match = np.zeros((num_sibpairs, num_intervals), dtype=int)
-is_pat_match = np.zeros((num_sibpairs, num_intervals), dtype=int)
+is_mat_match = np.zeros((num_sibpairs, num_intervals), dtype=np.int8)
+is_pat_match = np.zeros((num_sibpairs, num_intervals), dtype=np.int8)
 
 interval_start_to_index = dict([((chrom, x), i) for i, (chrom, x) in enumerate(zip(chroms, interval_starts))])
 interval_end_to_index = dict([((chrom, x), i) for i, (chrom, x) in enumerate(zip(chroms, interval_ends))])
@@ -210,8 +226,8 @@ interval_end_to_index = dict([((chrom, x), i) for i, (chrom, x) in enumerate(zip
 for sibpair_index, sibpair in enumerate(sibpairs):
     for chrom, start_pos, end_pos, mat_match, pat_match in zip(*process_phase_file(sibpair)):
         start_index, end_index = interval_start_to_index[(chrom, start_pos)], interval_end_to_index[(chrom, end_pos)]+1
-        is_mat_match[sibpair_index, start_index:end_index] = mat_match if (sibpair['num_affected']==0 or sibpair['num_affected']==2) else flip_match[mat_match]
-        is_pat_match[sibpair_index, start_index:end_index] = pat_match if (sibpair['num_affected']==0 or sibpair['num_affected']==2) else flip_match[pat_match]
+        is_mat_match[sibpair_index, start_index:end_index] = mat_match if (sibpair['num_affected']==0) or (sibpair['num_affected']==2) else flip_match[mat_match]
+        is_pat_match[sibpair_index, start_index:end_index] = pat_match if (sibpair['num_affected']==0) or (sibpair['num_affected']==2) else flip_match[pat_match]
 
 #np.save('permutation_tests/%s.%d.is_mat_match.npy' % (dataset_name, na), is_mat_match)
 #np.save('permutation_tests/%s.%d.is_pat_match.npy' % (dataset_name, na), is_pat_match)
@@ -226,9 +242,28 @@ print(is_mat_match.shape, is_pat_match.shape)
 u = np.tile(np.arange(num_intervals), num_intervals)
 v = np.repeat(np.arange(num_intervals), num_intervals)
 
-indices = u >= v
-x = u[indices]
-y = v[indices]
+if (args.mat_interval is not None):
+    chrom, start_pos, end_pos = parse_interval(args.mat_interval)
+    is_in_chrom = np.array([c==chrom for c in chroms], dtype=bool)
+    is_selected = is_in_chrom & (np.minimum(interval_ends, end_pos)-np.maximum(interval_starts, start_pos)>0)
+
+    indices = is_selected[u]
+    u = u[indices]
+    v = v[indices]
+
+if (args.pat_interval is not None):
+    chrom, start_pos, end_pos = parse_interval(args.pat_interval)
+    is_in_chrom = np.array([c==chrom for c in chroms], dtype=bool)
+    is_selected = is_in_chrom & (np.minimum(interval_ends, end_pos)-np.maximum(interval_starts, start_pos)>0)
+
+    indices = is_selected[v]
+    u = u[indices]
+    v = v[indices]
+
+print(interval_starts[u])
+print(interval_starts[v])
+
+assert len(u) == len(v)
 num_intervals = len(u)
 print(num_intervals)
 
@@ -238,9 +273,9 @@ ind_to_index = dict([(x, i) for i, x in enumerate(individuals)])
 sibling1_indices = np.array([ind_to_index[x['sibling1']] for x in sibpairs])
 sibling2_indices = np.array([ind_to_index[x['sibling2']] for x in sibpairs])
 
-A = np.random.randint(0, high=2, size=(args.num_trials+1, len(individuals), 2))
-X1 = (A[:, sibling1_indices, 0] == A[:, sibling2_indices, 0]).astype(int)
-X2 = (A[:, sibling1_indices, 1] == A[:, sibling2_indices, 1]).astype(int)
+A = np.random.randint(0, high=2, size=(args.num_trials+1, len(individuals), 2), dtype=np.int8)
+X1 = (A[:, sibling1_indices, 0] == A[:, sibling2_indices, 0]).astype(np.int8)
+X2 = (A[:, sibling1_indices, 1] == A[:, sibling2_indices, 1]).astype(np.int8)
 
 # randomly flip IBD in sibpairs
 #X1 = np.random.randint(0, high=2, size=(num_trials+1, len(sibpairs)))
@@ -273,8 +308,8 @@ def calc_trial(trial_index):
 
 def calc_interval(interval_index):
     x_mat = X1*np.tile(is_mat_match[:, u[interval_index]], (args.num_trials+1, 1))
-    x_pat = X2*np.tile(is_pat_match[:, u[interval_index]], (args.num_trials+1, 1))
-    y_mat = X1*np.tile(is_mat_match[:, v[interval_index]], (args.num_trials+1, 1))
+    #x_pat = X2*np.tile(is_pat_match[:, u[interval_index]], (args.num_trials+1, 1))
+    #y_mat = X1*np.tile(is_mat_match[:, v[interval_index]], (args.num_trials+1, 1))
     y_pat = X2*np.tile(is_pat_match[:, v[interval_index]], (args.num_trials+1, 1))
     
     #return np.sum(((x_mat>=0) & (y_pat>=0)) | ((y_mat>=0) & (x_pat>=0)), axis=1) + \
@@ -298,7 +333,7 @@ pvalues = np.ones((num_intervals,))
 max_t_k = -num_sibpairs * np.ones((args.num_trials+1,), dtype=int)
 q = np.zeros((num_intervals,), dtype=int)
 for i, j in zip(np.arange(num_intervals-1, -1, -1), orig_indices):
-    if (num_intervals-i)%10000==0:
+    if (num_intervals-i)%1000==0:
         print(num_intervals-i, flush=True)
     max_t_k = np.maximum(max_t_k, calc_interval(j))
     q[i] = max_t_k[0]
@@ -312,6 +347,8 @@ for i in np.arange(1, num_intervals):
 
 final_pvalues = np.zeros((num_intervals, ))
 final_pvalues[np.flip(orig_indices, axis=0)] = pvalues
+
+print(np.min(final_pvalues))
 
 np.save('permutation_tests/cross.matpat.%s.%d.npy' % (dataset_name, args.sibpair_type), final_pvalues)
 
